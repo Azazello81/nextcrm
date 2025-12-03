@@ -1,0 +1,81 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model TestConnection {
+  id        Int      @id @default(autoincrement())
+  message   String
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("test_connection")
+}
+
+model User {
+  id           String  @id @default(cuid())
+  email        String  @unique
+  passwordHash String?
+
+  // Telegram OAuth (опционально)
+  telegramId       BigInt? @unique
+  telegramUsername String?
+
+  // Роли и доступы
+  role UserRole @default(USER)
+
+  // Даты
+  registeredAt DateTime?
+  lastLoginAt  DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  // Мягкое удаление
+  isActive Boolean @default(true)
+
+  // Связь с сессиями регистрации (опциональная обратная связь)
+  registrationSession RegistrationSession?
+
+  @@map("users")
+}
+
+model RegistrationSession {
+  id String @id @default(cuid())
+
+  // Данные для регистрации
+  email        String   @unique
+  passwordHash String
+  role         UserRole @default(USER)
+
+  // Код подтверждения
+  verificationCode        String
+  verificationCodeExpires DateTime
+
+  // Статус и попытки
+  attempts   Int     @default(0)
+  isVerified Boolean @default(false)
+
+  // Метаданные
+  ipAddress String?
+  userAgent String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Связь с пользователем (после подтверждения)
+  userId String? @unique
+  user   User?   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([email])
+  @@index([verificationCode])
+  @@index([createdAt])
+  @@map("registration_sessions")
+}
+
+enum UserRole {
+  ADMIN
+  MANAGER
+  USER
+}

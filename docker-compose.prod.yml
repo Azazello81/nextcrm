@@ -1,0 +1,40 @@
+services:
+  nextcrm:
+    build:
+      context: .
+      dockerfile: .docker/production/Dockerfile
+    ports:
+      - '3000:3000'
+    environment:
+      - DATABASE_URL=postgresql://nextcrm:${DB_PASSWORD}@postgres:5432/nextcrm
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_USER=nextcrm
+      - NODE_ENV=production
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ['CMD', 'curl', '-f', 'http://localhost:3000/api/health']
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      - POSTGRES_DB=nextcrm
+      - POSTGRES_USER=nextcrm
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U nextcrm -d nextcrm']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres_data:
