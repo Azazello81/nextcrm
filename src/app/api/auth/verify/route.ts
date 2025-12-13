@@ -1,7 +1,7 @@
 // src/app/api/auth/verify/route.ts
 import { NextRequest, NextResponse } from 'next/server';
-import { RegistrationService } from '../../../../services/auth/registration.service';
-import { JWTService } from '../../../../lib/auth/jwt';
+import { RegistrationService } from '@services/auth/registration.service';
+import { JWTService } from '@lib/auth/jwt';
 
 export async function POST(request: NextRequest) {
   try {
@@ -16,8 +16,14 @@ export async function POST(request: NextRequest) {
 
     const user = await RegistrationService.verifyAndCreateUser(sessionId, code);
 
-    // Генерация JWT токена
-    const token = JWTService.generateAccessToken({
+    // Генерация JWT токенов
+    const accessToken = JWTService.generateAccessToken({
+      userId: user.id,
+      email: user.email,
+      role: user.role,
+    });
+
+    const refreshToken = JWTService.generateRefreshToken({
       userId: user.id,
       email: user.email,
       role: user.role,
@@ -30,16 +36,26 @@ export async function POST(request: NextRequest) {
         id: user.id,
         email: user.email,
         role: user.role,
+        registeredAt: user.registeredAt,
+        lastLoginAt: user.lastLoginAt,
       },
-      token,
+      token: accessToken,
+      refreshToken,
     });
 
-    // Устанавливаем HTTP-only cookie
-    response.cookies.set('auth_token', token, {
+    // Устанавливаем HTTP-only cookies
+    response.cookies.set('auth_token', accessToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'strict',
-      maxAge: 15 * 60,
+      maxAge: 15 * 60, // 15 минут
+    });
+
+    response.cookies.set('refresh_token', refreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      maxAge: 7 * 24 * 60 * 60, // 7 дней
     });
 
     return response;

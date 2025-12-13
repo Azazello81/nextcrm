@@ -11,8 +11,11 @@ export default function robots(): MetadataRoute.Robots {
         '/user/',
         '/user/*',
         '/api/',
+        '/debug/',
+        '/debug/*',
         '/_next/',
-        '/static/'
+        '/static/',
+        '/maintenance'
       ],
     },
     //sitemap: `${process.env.NEXT_PUBLIC_SITE_URL || 'https://yourapp.fiscalnic.ru'}/sitemap.xml`,

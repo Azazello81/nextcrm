@@ -1,9 +1,9 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, FormEvent, useCallback } from 'react'; // Добавили FormEvent и useCallback
 import { useRouter, useSearchParams } from 'next/navigation';
-import { JWTClientService } from '@lib/auth/jwt-client';
 import { motion, AnimatePresence } from 'framer-motion';
+import { handleLogin, useAuthStore } from '@/stores/auth-store'; // Импортируем нашу функцию
 
 export default function LoginForm() {
   const [email, setEmail] = useState('');
@@ -16,57 +16,147 @@ export default function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  const redirectUrl = searchParams.get('redirect') || '/user';
+  const requestedRedirect = searchParams.get('redirect') || '';
   const isInvalidToken = searchParams.get('invalid') === 'true';
 
+  // Функция для определения куда перенаправлять пользователя
+  const getRedirectPath = useCallback(
+    (userRole: string) => {
+      // Если есть явный redirect параметр, используем его
+      if (requestedRedirect) {
+        // Если USER пытается попасть в админку - игнорируем redirect
+        if (userRole === 'USER' && requestedRedirect.startsWith('/admin')) {
+          return '/user';
+        }
+
+        // Проверяем доступ к запрошенному пути
+        if (
+          requestedRedirect.startsWith('/admin') &&
+          userRole !== 'ADMIN' &&
+          userRole !== 'MANAGER'
+        ) {
+          return '/user';
+        }
+
+        return requestedRedirect;
+      }
+
+      // Иначе определяем по роли
+      let path = '/user'; // По умолчанию
+
+      switch (userRole) {
+        case 'ADMIN':
+        case 'MANAGER':
+          path = '/admin';
+          break;
+        case 'USER':
+          path = '/user';
+          break;
+      }
+
+      console.log(`🎯 Определен путь по роли (${userRole}): ${path}`);
+      return path;
+    },
+    [requestedRedirect],
+  );
+
   useEffect(() => {
-    // Добавляем класс для body чтобы убрать скролл
     document.body.classList.add('login-page');
+
+    // Проверяем если пользователь уже авторизован
+    const checkExistingAuth = async () => {
+      await new Promise((resolve) => setTimeout(resolve, 100)); // Даем store загрузиться
+
+      const storeState = useAuthStore.getState();
+      if (storeState.accessToken && storeState.user) {
+        const path = getRedirectPath(storeState.user.role);
+        router.push(path);
+      }
+    };
+
+    checkExistingAuth();
 
     if (isInvalidToken) {
       setError('Ваша сессия истекла. Пожалуйста, войдите снова.');
     }
 
-    // Очищаем класс при размонтировании
     return () => {
       document.body.classList.remove('login-page');
     };
-  }, [isInvalidToken]);
+  }, [isInvalidToken, getRedirectPath, router]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    setLoading(true);
     setError('');
 
+    // Проверяем минимальную длину пароля перед установкой загрузки
+    if (password.length < 6) {
+      setError('Пароль должен содержать не менее 6 символов.');
+      return;
+    }
+
+    setLoading(true);
+
     try {
-      const response = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email, password }),
+      console.log('🚀 Начинаем процесс входа...');
+      const result = await handleLogin(email, password);
+
+      console.log('📊 Результат handleLogin:', {
+        success: result.success,
+        hasUser: !!result.user,
+        userRole: result.user?.role,
+        error: result.error,
       });
 
-      const data = await response.json();
+      if (result.success && result.user) {
+        const redirectPath = getRedirectPath(result.user.role);
+        console.log(`🔄 Перенаправляем на: ${redirectPath}`);
 
-      if (data.success && data.token) {
-        JWTClientService.storeToken(data.token);
+        // Очищаем URL параметры
+        const cleanUrl = new URL(window.location.href);
+        cleanUrl.searchParams.delete('redirect');
+        cleanUrl.searchParams.delete('invalid');
+        window.history.replaceState({}, '', cleanUrl.toString());
 
-        // Плавный переход перед редиректом
-        await new Promise((resolve) => setTimeout(resolve, 300));
-        window.location.href = redirectUrl;
+        // Даем время store обновиться и браузеру обработать куки
+        await new Promise((resolve) => setTimeout(resolve, 500));
+
+        // Дополнительная проверка перед редиректом
+        console.log('⏳ Выполняю редирект...');
+        router.push(redirectPath);
+
+        // Двойное обновление для надежности
+        setTimeout(() => {
+          router.refresh();
+        }, 100);
       } else {
-        setError(data.message);
+        const errorMsg = result.error || 'Ошибка входа';
+        console.error('❌ Ошибка входа:', errorMsg);
+        setError(errorMsg);
       }
     } catch (err) {
-      setError('Произошла ошибка при входе');
+      const errorMessage = err instanceof Error ? err.message : 'Произошла ошибка при входе';
+      console.error('💥 Неожиданная ошибка:', err);
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
   };
 
+  const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter' && !loading && email && password.length >= 6) {
+      e.preventDefault();
+      const fakeEvent = {
+        preventDefault: () => {},
+      } as React.FormEvent<HTMLFormElement>;
+      handleSubmit(fakeEvent);
+    }
+  };
+  // Процент заполнения прогресс-бара по длине пароля
+  const passwordProgress = Math.min(100, Math.round((password.length / 6) * 100));
+  const isPasswordValid = password.length >= 6;
   return (
-    <div className=" w-full flex items-center justify-center p-4 bg-primary">
+    <div className="w-full flex items-center justify-center p-4 bg-primary">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -123,7 +213,7 @@ export default function LoginForm() {
               >
                 <div className="flex items-start">
                   <svg
-                    className="w-5 h-5 mt-0.5 mr-3 flex-shrink-0"
+                    className="w-5 h-5 mt-0.5 mr-3 shrink-0"
                     fill="currentColor"
                     viewBox="0 0 20 20"
                   >
@@ -161,9 +251,12 @@ export default function LoginForm() {
                   onChange={(e) => setEmail(e.target.value)}
                   onFocus={() => setEmailFocused(true)}
                   onBlur={() => setEmailFocused(false)}
+                  onKeyPress={handleKeyPress}
                   required
                   className="input-field text-base"
                   placeholder="your@email.com"
+                  disabled={loading}
+                  autoComplete="email"
                 />
               </motion.div>
             </div>
@@ -188,21 +281,81 @@ export default function LoginForm() {
                   onChange={(e) => setPassword(e.target.value)}
                   onFocus={() => setPasswordFocused(true)}
                   onBlur={() => setPasswordFocused(false)}
+                  onKeyPress={handleKeyPress}
                   required
                   className="input-field text-base"
                   placeholder="Ваш пароль"
+                  disabled={loading}
+                  aria-invalid={password.length > 0 && password.length < 6}
+                  aria-describedby="password-hint"
+                  autoComplete="current-password"
                 />
               </motion.div>
+              {/* Подсказка по длине пароля */}
+              {password.length > 0 && (
+                <div className="mt-2">
+                  <div className="flex items-center justify-between mb-1">
+                    <div
+                      id="password-hint"
+                      className={`text-xs ${isPasswordValid ? 'text-accent' : 'text-red-500'}`}
+                      aria-live="polite"
+                    >
+                      {isPasswordValid
+                        ? 'Пароль достаточной длины.'
+                        : `Пароль должен содержать не менее 6 символов (${password.length}/6)`}
+                    </div>
+                    <div className="flex items-center ml-2">
+                      {isPasswordValid ? (
+                        <svg
+                          className="w-4 h-4 text-green-500"
+                          viewBox="0 0 20 20"
+                          fill="currentColor"
+                        >
+                          <path
+                            fillRule="evenodd"
+                            d="M16.707 5.293a1 1 0 00-1.414 0L8 12.586 4.707 9.293a1 1 0 00-1.414 1.414l4 4a1 1 0 001.414 0l8-8a1 1 0 000-1.414z"
+                            clipRule="evenodd"
+                          />
+                        </svg>
+                      ) : (
+                        <svg
+                          className="w-4 h-4 text-red-500"
+                          viewBox="0 0 20 20"
+                          fill="currentColor"
+                        >
+                          <path
+                            fillRule="evenodd"
+                            d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11V5a1 1 0 10-2 0v2a1 1 0 102 0zm0 2a1 1 0 10-2 0v4a1 1 0 102 0v-4z"
+                            clipRule="evenodd"
+                          />
+                        </svg>
+                      )}
+                    </div>
+                  </div>
+                  <div
+                    role="progressbar"
+                    aria-valuemin={0}
+                    aria-valuemax={100}
+                    aria-valuenow={passwordProgress}
+                    className="w-full h-2 bg-gray-200 rounded overflow-hidden"
+                  >
+                    <div
+                      className={`${isPasswordValid ? 'bg-accent' : 'bg-red-500'} h-full transition-width duration-150`}
+                      style={{ width: `${passwordProgress}%` }}
+                    />
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Кнопка отправки */}
             <motion.button
               type="submit"
-              disabled={loading}
+              disabled={loading || !email || password.length < 6}
               onMouseEnter={() => setIsHovered(true)}
               onMouseLeave={() => setIsHovered(false)}
               whileTap={{ scale: 0.98 }}
-              className="btn-accent w-full py-3 px-4 flex items-center justify-center relative overflow-hidden"
+              className="btn-accent w-full py-3 px-4 flex items-center justify-center relative overflow-hidden disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <AnimatePresence mode="wait">
                 {loading ? (
@@ -258,6 +411,13 @@ export default function LoginForm() {
               )}
             </motion.button>
           </form>
+
+          {/* 🔸 Добавим ссылку "Забыли пароль?" */}
+          <div className="mt-4 text-center">
+            <a href="/forgot-password" className="text-sm text-accent hover:underline">
+              Забыли пароль?
+            </a>
+          </div>
 
           {/* Ссылка на регистрацию */}
           <motion.div

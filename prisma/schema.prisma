@@ -20,6 +20,16 @@ model User {
   email        String  @unique
   passwordHash String?
 
+  // Личные данные
+  lastName     String?   // Фамилия
+  firstName    String?   // Имя
+  middleName   String?   // Отчество
+  inn          String?   @unique // ИНН
+  companyName  String?   // Название организации
+  phone        String?   // Номер телефона
+  avatar       String?   // Аватар (путь к файлу или ссылка на S3)
+  comment      String?   // Комментарий
+
   // Telegram OAuth (опционально)
   telegramId       BigInt? @unique
   telegramUsername String?
@@ -40,6 +50,10 @@ model User {
   registrationSession RegistrationSession?
 
   @@map("users")
+  @@index([inn])
+  @@index([lastName, firstName])
+  @@index([companyName])
+  @@index([phone])
 }
 
 model RegistrationSession {

@@ -4,6 +4,46 @@
 import { useState, useEffect, ChangeEvent, ReactNode } from 'react';
 import { JWTClientService } from '@lib/auth/jwt-client';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useAuthStore, AuthUser } from '../../stores/auth-store';
+import { UserRole } from '@prisma/client';
+
+// Типы для ответов API
+interface RegisterResponse {
+  success: boolean;
+  message?: string;
+  data?: {
+    sessionId?: string;
+    verificationCode?: string;
+    expiresAt?: Date;
+  };
+  sessionId?: string;
+  verificationCode?: string;
+}
+
+interface VerifyResponse {
+  success: boolean;
+  message?: string;
+  token?: string;
+  refreshToken?: string;
+  user?: {
+    id: string;
+    email: string;
+    role: UserRole;
+    registeredAt?: Date | string | null;
+    lastLoginAt?: Date | string | null;
+  };
+}
+
+interface ResendCodeResponse {
+  success: boolean;
+  message?: string;
+  sessionId?: string;
+  verificationCode?: string;
+  data?: {
+    sessionId?: string;
+    verificationCode?: string;
+  };
+}
 
 // Вспомогательные компоненты
 const StepIndicator = ({ step }: { step: number }) => (
@@ -44,12 +84,32 @@ const AnimatedIcon = ({ step }: { step: number }) => (
       style={{ backgroundColor: 'var(--color-accent)' }}
     >
       {step === 1 ? (
-        <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="var(--color-text-on-accent)">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
+        <svg
+          className="w-6 h-6"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="var(--color-text-on-accent)"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"
+          />
         </svg>
       ) : (
-        <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="var(--color-text-on-accent)">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+        <svg
+          className="w-6 h-6"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="var(--color-text-on-accent)"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
+          />
         </svg>
       )}
     </motion.div>
@@ -149,33 +209,42 @@ const SubmitButton = ({
   >
     <AnimatePresence mode="wait">
       {loading ? (
-        <motion.div key="loading" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex items-center">
-          <motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: 'linear' }} className="w-5 h-5 mr-3 border-2 border-white border-t-transparent rounded-full" />
+        <motion.div
+          key="loading"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="flex items-center"
+        >
+          <motion.div
+            animate={{ rotate: 360 }}
+            transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+            className="w-5 h-5 mr-3 border-2 border-white border-t-transparent rounded-full"
+          />
           <span className="text-base">Загрузка...</span>
         </motion.div>
       ) : (
-        <motion.div key="text" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex items-center text-base">
+        <motion.div
+          key="text"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="flex items-center text-base"
+        >
           {children}
         </motion.div>
       )}
     </AnimatePresence>
     {isHovered && !loading && (
-      <motion.div initial={{ x: '-100%' }} animate={{ x: '100%' }} transition={{ duration: 0.6 }} className="absolute inset-0 opacity-10 bg-text-on-accent" />
+      <motion.div
+        initial={{ x: '-100%' }}
+        animate={{ x: '100%' }}
+        transition={{ duration: 0.6 }}
+        className="absolute inset-0 opacity-10 bg-text-on-accent"
+      />
     )}
   </motion.button>
 );
-
-interface AuthResponse {
-  success: boolean;
-  message?: string;
-  token?: string;
-  sessionId?: string;
-  verificationCode?: string;
-  data?: {
-    sessionId?: string;
-    verificationCode?: string;
-  };
-}
 
 // Основной компонент
 export default function RegisterForm() {
@@ -191,13 +260,22 @@ export default function RegisterForm() {
   const [passwordFocused, setPasswordFocused] = useState(false);
   const [codeFocused, setCodeFocused] = useState(false);
 
+  const { setTokens, setUser } = useAuthStore();
+
   useEffect(() => {
     document.body.classList.add('login-page');
     return () => document.body.classList.remove('login-page');
   }, []);
 
+  // Вспомогательная функция для преобразования даты
+  const parseDate = (date: Date | string | null | undefined): Date | null => {
+    if (!date) return null;
+    if (date instanceof Date) return date;
+    return new Date(date);
+  };
+
   // Вспомогательные функции
-  const logVerificationCode = (data: AuthResponse) => {
+  const logVerificationCode = (data: RegisterResponse) => {
     if (process.env.NODE_ENV !== 'development') return;
 
     const code = data.data?.verificationCode || data.verificationCode;
@@ -207,17 +285,18 @@ export default function RegisterForm() {
     }
 
     if (data.message?.includes('Код подтверждения:')) {
-      const match = data.message.match(/Код подтверждения: (\d{6})/);
+      const regex = /Код подтверждения: (\d{6})/;
+      const match = regex.exec(data.message);
       if (match) console.log(`Код подтверждения: ${match[1]}`);
     }
   };
 
-  const updateSessionId = (data: AuthResponse) => {
+  const updateSessionId = (data: ResendCodeResponse) => {
     const newSessionId = data.data?.sessionId || data.sessionId;
     if (newSessionId) setSessionId(newSessionId);
   };
 
-  const showCodeMessage = (data: AuthResponse) => {
+  const showCodeMessage = (data: ResendCodeResponse) => {
     if (process.env.NODE_ENV === 'development') {
       const code = data.data?.verificationCode || data.verificationCode;
       if (code) console.log(`Новый код подтверждения: ${code}`);
@@ -239,7 +318,7 @@ export default function RegisterForm() {
         body: JSON.stringify({ email, password }),
       });
 
-      const data: AuthResponse = await response.json();
+      const data: RegisterResponse = await response.json();
 
       if (data.success) {
         const sessionIdFromResponse = data.data?.sessionId || data.sessionId;
@@ -268,15 +347,37 @@ export default function RegisterForm() {
       const response = await fetch('/api/auth/verify', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sessionId: sessionId.trim(), code: verificationCode.trim() }),
+        body: JSON.stringify({
+          sessionId: sessionId.trim(),
+          code: verificationCode.trim(),
+        }),
       });
 
-      const data: AuthResponse = await response.json();
+      const data: VerifyResponse = await response.json();
 
-      if (data.success) {
-        if (data.token) JWTClientService.storeToken(data.token);
-        await new Promise(resolve => setTimeout(resolve, 300));
-        window.location.href = '/user';
+      if (data.success && data.token) {
+        // Сохраняем токены в Zustand store
+        setTokens(data.token, data.refreshToken);
+
+        // Сохраняем данные пользователя если есть
+        if (data.user) {
+          const authUser: AuthUser = {
+            id: data.user.id,
+            email: data.user.email,
+            role: data.user.role,
+            registeredAt: parseDate(data.user.registeredAt),
+            lastLoginAt: parseDate(data.user.lastLoginAt),
+          };
+          setUser(authUser);
+        }
+
+        // Для совместимости сохраняем также в localStorage
+        JWTClientService.storeToken(data.token);
+
+        // Редирект на личный кабинет
+        if (globalThis.window !== undefined) {
+          globalThis.window.location.href = '/user';
+        }
       } else {
         setError(data.message || 'Ошибка верификации');
       }
@@ -300,7 +401,7 @@ export default function RegisterForm() {
         body: JSON.stringify({ email }),
       });
 
-      const data: AuthResponse = await response.json();
+      const data: ResendCodeResponse = await response.json();
 
       if (data.success) {
         updateSessionId(data);
@@ -317,7 +418,7 @@ export default function RegisterForm() {
   };
 
   const handleVerificationCodeChange = (e: ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value.replace(/\D/g, '');
+    const value = e.target.value.replaceAll(/\D/g, '');
     setVerificationCode(value.slice(0, 6));
   };
 
@@ -353,10 +454,26 @@ export default function RegisterForm() {
         onBlur={() => setPasswordFocused(false)}
       />
 
-      <SubmitButton loading={loading} isHovered={isHovered} onMouseEnter={() => setIsHovered(true)} onMouseLeave={() => setIsHovered(false)}>
+      <SubmitButton
+        loading={loading}
+        isHovered={isHovered}
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
+      >
         <>
-          <svg className="w-5 h-5 mr-2 transition-transform duration-200" style={{ transform: isHovered ? 'translateX(4px)' : 'none' }} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H9a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+          <svg
+            className="w-5 h-5 mr-2 transition-transform duration-200"
+            style={{ transform: isHovered ? 'translateX(4px)' : 'none' }}
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M11 5H9a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
+            />
           </svg>
           Зарегистрироваться
         </>
@@ -365,11 +482,24 @@ export default function RegisterForm() {
   );
 
   const renderStepTwo = () => (
-    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.3 }}
+    >
       <div className="mb-6 p-4 bg-gradient-to-r from-blue-50 to-blue-100 rounded-lg border border-blue-200">
-        <p className="text-sm text-blue-800 mb-2">На email <strong className="text-blue-900">{email}</strong> был отправлен 6-значный код подтверждения.</p>
-        <p className="text-xs text-blue-700">Проверьте папку &quot;Входящие&quot; и &quot;Спам&quot;. Код действителен 15 минут.</p>
-        {process.env.NODE_ENV === 'development' && sessionId && <p className="text-xs text-gray-500 mt-2">Session ID: {sessionId.substring(0, 20)}... (debug)</p>}
+        <p className="text-sm text-blue-800 mb-2">
+          На email <strong className="text-blue-900">{email}</strong> был отправлен 6-значный код
+          подтверждения.
+        </p>
+        <p className="text-xs text-blue-700">
+          Проверьте папку &quot;Входящие&quot; и &quot;Спам&quot;. Код действителен 10 минут.
+        </p>
+        {process.env.NODE_ENV === 'development' && sessionId && (
+          <p className="text-xs text-gray-500 mt-2">
+            Session ID: {sessionId.substring(0, 20)}... (debug)
+          </p>
+        )}
       </div>
 
       <form onSubmit={handleVerification} className="space-y-6">
@@ -390,32 +520,63 @@ export default function RegisterForm() {
         />
 
         <div className="flex space-x-4">
-          <SubmitButton 
-            loading={loading} 
-            disabled={!verificationCode || verificationCode.length !== 6}
+          <SubmitButton
+            loading={loading}
+            disabled={!verificationCode || verificationCode.length !== 6 || !sessionId}
             isHovered={isHovered}
             onMouseEnter={() => setIsHovered(true)}
             onMouseLeave={() => setIsHovered(false)}
           >
             <>
-              <svg className="w-5 h-5 mr-2 transition-transform duration-200" style={{ transform: isHovered ? 'translateX(4px)' : 'none' }} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              <svg
+                className="w-5 h-5 mr-2 transition-transform duration-200"
+                style={{ transform: isHovered ? 'translateX(4px)' : 'none' }}
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                />
               </svg>
               Подтвердить
             </>
           </SubmitButton>
 
-          <motion.button type="button" onClick={handleResendCode} disabled={loading} whileTap={{ scale: 0.98 }} className="flex-1 py-3 px-4 flex items-center justify-center bg-transparent border border-color text-secondary rounded-lg hover:bg-gray-50 transition-colors duration-200">
+          <motion.button
+            type="button"
+            onClick={handleResendCode}
+            disabled={loading}
+            whileTap={{ scale: 0.98 }}
+            className="flex-1 py-3 px-4 flex items-center justify-center bg-transparent border border-color text-secondary rounded-lg hover:bg-gray-50 transition-colors duration-200"
+          >
             <svg className="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+              />
             </svg>
             Новый код
           </motion.button>
         </div>
 
-        <button type="button" onClick={handleGoBack} className="w-full text-sm text-accent hover:text-blue-500 flex items-center justify-center">
+        <button
+          type="button"
+          onClick={handleGoBack}
+          className="w-full text-sm text-accent hover:text-blue-500 flex items-center justify-center"
+        >
           <svg className="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M10 19l-7-7m0 0l7-7m-7 7h18"
+            />
           </svg>
           Вернуться к регистрации
         </button>
@@ -424,10 +585,20 @@ export default function RegisterForm() {
   );
 
   const renderLoginLink = () => (
-    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }} className="mt-8 pt-6 text-center border-t border-color">
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ delay: 0.3 }}
+      className="mt-8 pt-6 text-center border-t border-color"
+    >
       <p className="text-sm text-secondary">
-        {step === 1 ? 'Уже есть аккаунт?' : 'Уже есть аккаунт?'}{' '}
-        <motion.a whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} href="/login" className="ml-2 font-medium inline-flex items-center transition-colors duration-200 text-accent">
+        Уже есть аккаунт?{' '}
+        <motion.a
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          href="/login"
+          className="ml-2 font-medium inline-flex items-center transition-colors duration-200 text-accent"
+        >
           Войти
           <svg className="w-3 h-3 ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
@@ -439,12 +610,30 @@ export default function RegisterForm() {
 
   return (
     <div className="w-full flex items-center justify-center p-4 bg-primary">
-      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }} className="w-full max-w-md">
-        <motion.div whileHover={{ y: -2 }} transition={{ type: 'spring', stiffness: 100 }} className="card p-8">
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.1 }} className="text-center mb-8">
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4 }}
+        className="w-full max-w-md"
+      >
+        <motion.div
+          whileHover={{ y: -2 }}
+          transition={{ type: 'spring', stiffness: 100 }}
+          className="card p-8"
+        >
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.1 }}
+            className="text-center mb-8"
+          >
             <AnimatedIcon step={step} />
-            <h1 className="text-2xl font-semibold mb-2 text-primary">{step === 1 ? 'Создание аккаунта' : 'Подтверждение email'}</h1>
-            <p className="text-sm text-secondary">{step === 1 ? 'Заполните форму для регистрации' : 'Введите код подтверждения'}</p>
+            <h1 className="text-2xl font-semibold mb-2 text-primary">
+              {step === 1 ? 'Создание аккаунта' : 'Подтверждение email'}
+            </h1>
+            <p className="text-sm text-secondary">
+              {step === 1 ? 'Заполните форму для регистрации' : 'Введите код подтверждения'}
+            </p>
           </motion.div>
 
           <StepIndicator step={step} />
@@ -457,7 +646,9 @@ export default function RegisterForm() {
         </motion.div>
 
         <div className="mt-4 text-center">
-          <p className="text-xs text-secondary">© {new Date().getFullYear()} NextCRM. Все права защищены.</p>
+          <p className="text-xs text-secondary">
+            © {new Date().getFullYear()} NextCRM. Все права защищены.
+          </p>
         </div>
       </motion.div>
     </div>

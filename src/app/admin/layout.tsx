@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   ThemeProvider,
@@ -32,25 +32,13 @@ import {
 } from '@mui/icons-material';
 
 import theme from '../../lib/theme';
-
-// Mock данные админа
-const mockAdmin = {
-  id: '1',
-  login: 'admin',
-  name: 'Администратор Системы',
-  email: 'admin@example.com',
-  phone: '+79999999999',
-  datereg: new Date('2024-01-01'),
-  dateactiv: new Date(),
-  avatar: '',
-  role: 'admin' as const,
-};
+import { useUserProfile, handleLogout as storeLogout, useAuthStore } from '@/stores/auth-store';
 
 const drawerWidth = 240;
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<typeof mockAdmin | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const { user: storeUser, isAdmin } = useUserProfile();
+  const isLoading = useAuthStore((s) => s.isLoading);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [desktopOpen, setDesktopOpen] = useState(true);
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
@@ -59,18 +47,12 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const drawerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      const userData = mockAdmin;
-      setUser(userData);
-      setIsLoading(false);
-
-      if (!userData || userData.role !== 'admin') {
+    if (!isLoading) {
+      if (!storeUser || !isAdmin) {
         router.push('/auth/signin');
       }
-    }, 500);
-
-    return () => clearTimeout(timer);
-  }, [router]);
+    }
+  }, [isLoading, storeUser, isAdmin, router]);
 
   const handleDrawerToggle = () => {
     if (isMobile) {
@@ -97,7 +79,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   };
 
   const handleLogout = () => {
-    setUser(null);
+    storeLogout();
     handleMenuClose();
     router.push('/');
   };
@@ -136,7 +118,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     );
   }
 
-  if (!user) {
+  if (!storeUser) {
     return null;
   }
 
@@ -223,7 +205,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             </Typography>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
               <Typography variant="body2" sx={{ display: { xs: 'none', sm: 'block' } }}>
-                {user.name}
+                {storeUser?.name}
               </Typography>
               <IconButton
                 size="large"
@@ -234,7 +216,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 color="inherit"
               >
                 <Avatar sx={{ width: 32, height: 32, bgcolor: 'secondary.main' }}>
-                  {user.name?.charAt(0) || 'A'}
+                  {storeUser?.name?.charAt(0) || 'A'}
                 </Avatar>
               </IconButton>
             </Box>

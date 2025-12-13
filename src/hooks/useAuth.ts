@@ -1,89 +1,153 @@
-// src/hooks/useAuth.ts
-import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { JWTClientService } from '../lib/auth/jwt-client';
-import { User } from '../types/user';
+'use client';
 
-export function useAuth(redirectTo: string = '/login') {
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
-  const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
+import { useEffect, useCallback, useState, useRef, useMemo } from 'react';
+import { useRouter } from 'next/navigation';
+import { useAuthStore, ApiResponse } from '@/stores/auth-store';
+import { UserRole } from '@prisma/client';
+
+export function useAuth(redirectTo?: string) {
   const router = useRouter();
+  const {
+    user,
+    accessToken,
+    isLoading: storeLoading,
+    setUserFromApi,
+    logout,
+    isAdmin,
+    isManager,
+    isUser,
+    hasRole,
+    hasAnyRole,
+    setLoading: setStoreLoading,
+  } = useAuthStore();
+
+  const [localLoading, setLocalLoading] = useState(true);
+  const isInitialMount = useRef(true);
+  const hasFetchedProfile = useRef(false);
+  const redirectTriggered = useRef(false);
+
+  // Оптимизированная проверка загрузки
+  const isLoading = useMemo(() => {
+    return storeLoading || localLoading;
+  }, [storeLoading, localLoading]);
+
+  // Оптимизированная проверка авторизации
+  const isAuthenticated = useMemo(() => {
+    return !!(accessToken && user);
+  }, [accessToken, user]);
+
+  // Функция для загрузки профиля
+  const fetchProfile = useCallback(async (): Promise<boolean> => {
+    if (!accessToken || hasFetchedProfile.current) {
+      return false;
+    }
+
+    try {
+      const response = await fetch('/api/auth/me', {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+      });
+
+      if (!response.ok) {
+        if (response.status === 401) {
+          logout();
+          return false;
+        }
+        return false;
+      }
+
+      const data: ApiResponse = await response.json();
+
+      if (data.success && data.user) {
+        setUserFromApi(data);
+        hasFetchedProfile.current = true;
+        return true;
+      }
+      return false;
+    } catch (error) {
+      console.error('Ошибка загрузки профиля:', error);
+      return false;
+    }
+  }, [accessToken, setUserFromApi, logout]);
 
   useEffect(() => {
-    const checkAuth = async () => {
-      const token = JWTClientService.getToken();
-
-      // Проверяем наличие и формат токена
-      if (!token || !JWTClientService.isValidTokenFormat(token)) {
-        console.log('🚫 Токен отсутствует или имеет неверный формат');
-        handleAuthFailure();
+    const initializeAuth = async () => {
+      // Если уже сработал редирект, не делаем ничего
+      if (redirectTriggered.current) {
         return;
       }
 
-      // Проверяем не истек ли токен
-      if (JWTClientService.isTokenExpired(token)) {
-        console.log('🚫 Токен истек');
-        handleAuthFailure();
+      // Если нет токена и требуется редирект
+      if (!accessToken && redirectTo) {
+        redirectTriggered.current = true;
+        router.push(redirectTo);
+        setLocalLoading(false);
         return;
       }
 
-      try {
-        // Получаем данные из токена
-        const payload = JWTClientService.getPayloadFromToken(token);
-
-        if (!payload) {
-          throw new Error('Не удалось декодировать токен');
+      // Если есть токен
+      if (accessToken) {
+        // Если нет данных пользователя, загружаем профиль
+        if (!user || !user.email) {
+          await fetchProfile();
+        } else {
+          hasFetchedProfile.current = true;
+          if (storeLoading) {
+            setStoreLoading(false);
+          }
         }
-
-        // Здесь можно сделать API запрос для получения полных данных пользователя
-        const userData: User = {
-          id: payload.userId,
-          login: payload.email.split('@')[0],
-          email: payload.email,
-          datereg: new Date(),
-          dateactiv: new Date(),
-          role: 'user', // По умолчанию, можно получать с API
-        };
-
-        setLoading(false);
-        setIsAuthenticated(true);
-        setUser(userData);
-        console.log('✅ Пользователь аутентифицирован:', payload.email);
-      } catch (error) {
-        console.error('❌ Ошибка при проверке токена:', error);
-        handleAuthFailure();
       }
+
+      setLocalLoading(false);
     };
 
-    const handleAuthFailure = () => {
-      JWTClientService.removeToken();
-      setLoading(false);
-      setIsAuthenticated(false);
-      setUser(null);
+    // Только при первом монтировании даем задержку
+    if (isInitialMount.current) {
+      isInitialMount.current = false;
+      const timer = setTimeout(() => {
+        initializeAuth();
+      }, 50);
+      return () => clearTimeout(timer);
+    } else {
+      initializeAuth();
+    }
+  }, [router, accessToken, user, storeLoading, redirectTo, fetchProfile, setStoreLoading]);
 
-      if (redirectTo) {
-        setTimeout(() => router.push(redirectTo), 0);
-      }
+  // Сбрасываем флаги при изменении redirectTo
+  useEffect(() => {
+    return () => {
+      redirectTriggered.current = false;
+      hasFetchedProfile.current = false;
     };
-
-    checkAuth();
-  }, [router, redirectTo]);
+  }, [redirectTo]);
 
   return {
     isAuthenticated,
     user,
-    loading,
-    isAdmin: user?.role === 'admin',
-    isManager: user?.role === 'manager',
-    isUser: user?.role === 'user',
+    loading: isLoading,
+    isAdmin: isAdmin(),
+    isManager: isManager(),
+    isUser: isUser(),
+    hasRole,
+    hasAnyRole,
   };
 }
 
-// Хук для защищенных страниц (автоматический редирект)
 export function useProtectedRoute(redirectTo: string = '/login') {
   const { isAuthenticated, user, loading } = useAuth(redirectTo);
 
+  // Убрали логирование в продакшене
+  useEffect(() => {
+    if (process.env.NODE_ENV === 'development') {
+      console.log('🛡️ Protected Route:', {
+        isAuthenticated,
+        loading,
+        hasUser: !!user,
+      });
+    }
+  }, [isAuthenticated, loading, user]);
+
   return {
     isAuthenticated,
     user,
@@ -91,14 +155,12 @@ export function useProtectedRoute(redirectTo: string = '/login') {
   };
 }
 
-// Хук для проверки одной роли
-export function useRole(requiredRole: User['role']) {
-  const { isAuthenticated, user, loading } = useAuth();
+export function useRole(requiredRole: UserRole) {
+  const { isAuthenticated, user, loading, hasRole } = useAuth();
 
-  const hasAccess =
-    !loading && isAuthenticated && user
-      ? user.role === requiredRole || user.role === 'admin'
-      : null;
+  const hasAccess = useMemo(() => {
+    return !loading && isAuthenticated && user ? hasRole(requiredRole) : false;
+  }, [loading, isAuthenticated, user, hasRole, requiredRole]);
 
   return {
     hasAccess,
@@ -107,18 +169,74 @@ export function useRole(requiredRole: User['role']) {
   };
 }
 
-// Хук для проверки нескольких ролей
-export function useRoles(requiredRoles: User['role'][]) {
-  const { isAuthenticated, user, loading } = useAuth();
+export function useRoles(requiredRoles: UserRole[]) {
+  const { isAuthenticated, user, loading, hasAnyRole } = useAuth();
 
-  const hasAccess =
-    !loading && isAuthenticated && user
-      ? requiredRoles.includes(user.role) || user.role === 'admin'
-      : null;
+  const hasAccess = useMemo(() => {
+    return !loading && isAuthenticated && user ? hasAnyRole(requiredRoles) : false;
+  }, [loading, isAuthenticated, user, hasAnyRole, requiredRoles]);
 
   return {
     hasAccess,
     user,
     loading,
+  };
+}
+
+export function useUser() {
+  const user = useAuthStore((state) => state.user);
+  const getFullName = useAuthStore((state) => state.getFullName);
+  const getInitials = useAuthStore((state) => state.getInitials);
+  const getAvatarUrl = useAuthStore((state) => state.getAvatarUrl);
+
+  return useMemo(
+    () => ({
+      user,
+      fullName: getFullName(),
+      initials: getInitials(),
+      avatarUrl: getAvatarUrl(),
+    }),
+    [user, getFullName, getInitials, getAvatarUrl],
+  );
+}
+
+export function useProfile() {
+  const { accessToken } = useAuthStore();
+  const { setUserFromApi } = useAuthStore();
+
+  const loadProfile = useCallback(async (): Promise<boolean> => {
+    if (!accessToken) {
+      return false;
+    }
+
+    try {
+      const response = await fetch('/api/auth/me', {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+      });
+
+      if (!response.ok) {
+        if (response.status === 401) {
+          useAuthStore.getState().logout();
+        }
+        return false;
+      }
+
+      const data: ApiResponse = await response.json();
+
+      if (data.success && data.user) {
+        setUserFromApi(data);
+        return true;
+      }
+      return false;
+    } catch (error) {
+      console.error('Ошибка загрузки профиля:', error);
+      return false;
+    }
+  }, [accessToken, setUserFromApi]);
+
+  return {
+    loadProfile,
   };
 }

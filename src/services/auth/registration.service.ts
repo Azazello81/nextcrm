@@ -1,6 +1,7 @@
 import { PrismaClient, UserRole } from '@prisma/client';
 import { PasswordService } from '../../lib/auth/password';
 import { validateUserRole } from '../../lib/validation/user-roles';
+import { EmailService } from '../email.service';
 import {
   CleanupResult,
   SessionStats,
@@ -91,6 +92,16 @@ export class RegistrationService {
 
     console.log('✅ [RegistrationService] Сессия создана, ID:', session.id);
     console.log('📧 Код подтверждения:', verificationCode);
+
+     // Отправляем email с кодом подтверждения
+    try {
+      await EmailService.sendVerificationCode(email, verificationCode);
+      console.log('✅ [RegistrationService] Email с кодом отправлен на:', email);
+    } catch (error) {
+      console.error('❌ [RegistrationService] Ошибка отправки email:', error);
+      // Не прерываем процесс регистрации, код все равно сохраняется в БД
+      // В development режиме код будет показан в ответе
+    }
 
     return {
       sessionId: session.id,
@@ -219,6 +230,14 @@ export class RegistrationService {
 
     console.log('✅ [RegistrationService] Новый код отправлен для:', email);
     console.log('📧 Новый код:', verificationCode);
+
+        // Отправляем email с новым кодом
+    try {
+      await EmailService.sendVerificationCode(email, verificationCode);
+      console.log('✅ [RegistrationService] Email с новым кодом отправлен на:', email);
+    } catch (error) {
+      console.error('❌ [RegistrationService] Ошибка отправки email:', error);
+    }
 
     return {
       sessionId: updatedSession.id,

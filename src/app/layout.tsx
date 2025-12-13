@@ -1,13 +1,15 @@
 import type { Metadata } from 'next';
-import { Montserrat } from 'next/font/google';
+import localFont from 'next/font/local';
 import '../styles/globals.css';
+import { ToastProvider } from '../components/ui/Toast';
 
 // Настраиваем шрифт Montserrat
-const montserrat = Montserrat({
-  subsets: ['latin', 'cyrillic'],
+const montserrat = localFont({
+  src: '../fonts/Montserrat-VariableFont_wght.ttf',
   display: 'swap',
   variable: '--font-montserrat',
-  weight: ['300', '400', '500', '600', '700', '800'],
+  weight: '100 900',
+  style: 'normal',
 });
 
 export const metadata: Metadata = {
@@ -16,23 +18,12 @@ export const metadata: Metadata = {
   keywords: 'CRM, customers, management, business',
 };
 
-// Mock данные для тестирования без БД
-const mockUser = {
-  id: '1',
-  login: 'admin',
-  name: 'Администратор',
-  email: 'admin@example.com',
-  phone: '+79999999999',
-  datereg: new Date('2024-01-01'),
-  dateactiv: new Date(),
-  avatar: '',
-  role: 'admin' as const,
-};
-
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="ru" className={montserrat.variable}>
-      <body className={`${montserrat.className} antialiased`}>{children}</body>
+      <body className={`${montserrat.className} antialiased`}>
+        <ToastProvider>{children}</ToastProvider>
+      </body>
     </html>
   );
 }

@@ -71,6 +71,14 @@ export class UserService {
       select: {
         id: true,
         email: true,
+        lastName: true,
+        firstName: true,
+        middleName: true,
+        phone: true,
+        inn: true,
+        companyName: true,
+        avatar: true,
+        comment: true,
         role: true,
         telegramId: true,
         telegramUsername: true,
@@ -96,6 +104,14 @@ export class UserService {
       select: {
         id: true,
         email: true,
+        lastName: true,
+        firstName: true,
+        middleName: true,
+        phone: true,
+        inn: true,
+        companyName: true,
+        avatar: true,
+        comment: true,
         role: true,
         telegramId: true,
         telegramUsername: true,
@@ -173,6 +189,14 @@ export class UserService {
       select: {
         id: true,
         email: true,
+        lastName: true,
+        firstName: true,
+        middleName: true,
+        phone: true,
+        inn: true,
+        companyName: true,
+        avatar: true,
+        comment: true,
         role: true,
         telegramId: true,
         telegramUsername: true,
@@ -256,10 +280,26 @@ export class UserService {
     return requiredRoles.includes(user.role);
   }
 
+  // Обновление времени последнего входа
+  static async updateLastLogin(userId: string) {
+    await prisma.user.update({
+      where: { id: userId },
+      data: { lastLoginAt: new Date() },
+    });
+  }
+
   // Обновление профиля пользователя
   static async updateProfile(
     userId: string,
     data: {
+      lastName?: string;
+      firstName?: string;
+      middleName?: string;
+      phone?: string;
+      inn?: string;
+      companyName?: string;
+      avatar?: string;
+      comment?: string;
       email?: string;
       telegramId?: bigint;
       telegramUsername?: string;
@@ -281,6 +321,20 @@ export class UserService {
       }
     }
 
+    // Если меняем ИНН, проверяем уникальность
+    if (data.inn) {
+      const existingInn = await prisma.user.findFirst({
+        where: {
+          inn: data.inn,
+          id: { not: userId },
+        },
+      });
+
+      if (existingInn) {
+        throw new Error('Пользователь с таким ИНН уже существует');
+      }
+    }
+
     const updatedUser = await prisma.user.update({
       where: { id: userId },
       data: {
@@ -290,6 +344,14 @@ export class UserService {
       select: {
         id: true,
         email: true,
+        lastName: true,
+        firstName: true,
+        middleName: true,
+        phone: true,
+        inn: true,
+        companyName: true,
+        avatar: true,
+        comment: true,
         role: true,
         telegramId: true,
         telegramUsername: true,
@@ -360,6 +422,11 @@ export class UserService {
       where: {
         OR: [
           { email: { contains: query, mode: 'insensitive' } },
+          { lastName: { contains: query, mode: 'insensitive' } },
+          { firstName: { contains: query, mode: 'insensitive' } },
+          { companyName: { contains: query, mode: 'insensitive' } },
+          { inn: { contains: query, mode: 'insensitive' } },
+          { comment: { contains: query, mode: 'insensitive' } },
           { telegramUsername: { contains: query, mode: 'insensitive' } },
         ],
         isActive: true,
@@ -367,6 +434,13 @@ export class UserService {
       select: {
         id: true,
         email: true,
+        lastName: true,
+        firstName: true,
+        middleName: true,
+        inn: true,
+        companyName: true,
+        avatar: true,
+        comment: true,
         role: true,
         telegramId: true,
         telegramUsername: true,
@@ -451,5 +525,45 @@ export class UserService {
 
     console.log('✅ [UserService] Пароль сброшен для:', user.email);
     return { success: true, email: user.email };
+  }
+
+  // Получение полного имени пользователя
+  static getFullName(user: {
+    lastName?: string | null;
+    firstName?: string | null;
+    middleName?: string | null;
+    email: string;
+  }): string {
+    const parts: string[] = [];
+
+    if (user.lastName && user.lastName.trim()) parts.push(user.lastName.trim());
+    if (user.firstName && user.firstName.trim()) parts.push(user.firstName.trim());
+    if (user.middleName && user.middleName.trim()) parts.push(user.middleName.trim());
+
+    return parts.length > 0 ? parts.join(' ') : user.email;
+  }
+
+  // Получение инициалов
+  static getInitials(user: {
+    lastName?: string | null;
+    firstName?: string | null;
+    email: string;
+  }): string {
+    let initials = '';
+    if (user.lastName && user.lastName.trim())
+      initials += user.lastName.trim().charAt(0).toUpperCase();
+    if (user.firstName && user.firstName.trim())
+      initials += user.firstName.trim().charAt(0).toUpperCase();
+
+    return initials || user.email.charAt(0).toUpperCase();
+  }
+
+  // Проверка заполненности профиля
+  static isProfileComplete(user: {
+    lastName?: string | null;
+    firstName?: string | null;
+    email: string;
+  }): boolean {
+    return Boolean(user.email?.trim() && user.firstName?.trim() && user.lastName?.trim());
   }
 }

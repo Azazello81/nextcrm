@@ -2,6 +2,28 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { motion } from 'framer-motion';
+import {
+  Email as EmailIcon,
+  Phone as PhoneIcon,
+  LocationOn as LocationIcon,
+  AccessTime as AccessTimeIcon,
+  Verified as VerifiedIcon,
+  PointOfSale as PointOfSaleIcon,
+  Calculate as CalculateIcon,
+  Storage as StorageIcon,
+  Security as SecurityIcon,
+  Description as DescriptionIcon,
+  Analytics as AnalyticsIcon,
+  Facebook as FacebookIcon,
+  Telegram as TelegramIcon,
+  LinkedIn as LinkedInIcon,
+  Instagram as InstagramIcon,
+  Code as CodeIcon,
+  Cloud as CloudIcon,
+  Person as PersonIcon,
+  Schedule as ScheduleIcon,
+} from '@mui/icons-material';
 
 interface HealthResponse {
   status: string;
@@ -20,11 +42,11 @@ export default function Footer() {
   const [currentUser, setCurrentUser] = useState<string>('Гость');
   const [currentTime, setCurrentTime] = useState(new Date());
   const [lastChecked, setLastChecked] = useState<string>('');
+  const [isVisible, setIsVisible] = useState(false);
 
   // Функция для получения реального статуса БД
   const fetchDbStatus = async () => {
     try {
-      console.log('🔄 Footer: Запрос статуса БД...');
       const response = await fetch('/api/health', {
         cache: 'no-cache',
         headers: {
@@ -37,13 +59,11 @@ export default function Footer() {
       }
 
       const data: HealthResponse = await response.json();
-      console.log('✅ Footer: Статус БД получен:', data.database.status);
-
       setDbStatus(data.database.status as 'connected' | 'disconnected');
       setDbResponseTime(data.database.responseTime || '');
       setLastChecked(new Date().toLocaleTimeString('ru-RU'));
     } catch (error) {
-      console.error('❌ Footer: Ошибка получения статуса БД:', error);
+      console.error('Ошибка получения статуса БД:', error);
       setDbStatus('disconnected');
       setDbResponseTime('');
       setLastChecked(new Date().toLocaleTimeString('ru-RU'));
@@ -67,6 +87,9 @@ export default function Footer() {
     // Первоначальная загрузка статуса БД
     fetchDbStatus();
 
+    // Анимация появления
+    setIsVisible(true);
+
     // Обновляем время каждую секунду
     const timeTimer = setInterval(() => {
       setCurrentTime(new Date());
@@ -84,13 +107,13 @@ export default function Footer() {
   const getDbStatusColor = () => {
     switch (dbStatus) {
       case 'connected':
-        return 'text-green-400';
+        return 'text-emerald-400';
       case 'disconnected':
         return 'text-red-400';
       case 'loading':
-        return 'text-yellow-400';
+        return 'text-amber-400';
       default:
-        return 'text-gray-400';
+        return 'text-slate-400';
     }
   };
 
@@ -110,213 +133,303 @@ export default function Footer() {
   const getDbStatusDot = () => {
     switch (dbStatus) {
       case 'connected':
-        return 'bg-green-400';
+        return 'bg-emerald-400';
       case 'disconnected':
-        return 'bg-red-400';
+        return 'bg-red-400 animate-pulse';
       case 'loading':
-        return 'bg-yellow-400 animate-pulse';
+        return 'bg-amber-400 animate-pulse';
       default:
-        return 'bg-gray-400';
+        return 'bg-slate-400';
     }
   };
 
+  const services = [
+    { icon: <PointOfSaleIcon sx={{ fontSize: 16 }} />, label: 'Обслуживание ККТ' },
+    { icon: <CalculateIcon sx={{ fontSize: 16 }} />, label: 'Бухгалтерские услуги' },
+    { icon: <StorageIcon sx={{ fontSize: 16 }} />, label: 'Фискальные накопители' },
+    { icon: <SecurityIcon sx={{ fontSize: 16 }} />, label: 'ОНЛАЙН-ККТ' },
+    { icon: <DescriptionIcon sx={{ fontSize: 16 }} />, label: 'ЭДО и СФ' },
+    { icon: <AnalyticsIcon sx={{ fontSize: 16 }} />, label: 'Аналитика продаж' },
+  ];
+
+  const quickLinks = [
+    { href: '/', label: 'Главная' },
+    { href: '/services', label: 'Услуги' },
+    { href: '/pricing', label: 'Цены' },
+    { href: '/about', label: 'О компании' },
+    { href: '/contact', label: 'Контакты' },
+    { href: '/faq', label: 'FAQ' },
+  ];
+
+  const legalLinks = [
+    { href: '/privacy', label: 'Политика конфиденциальности' },
+    { href: '/terms', label: 'Условия использования' },
+    { href: '/cookies', label: 'Политика cookies' },
+    { href: '/support', label: 'Техническая поддержка' },
+  ];
+
+  const socialLinks = [
+    { icon: <FacebookIcon sx={{ fontSize: 20 }} />, href: '#', label: 'Facebook' },
+    { icon: <TelegramIcon sx={{ fontSize: 20 }} />, href: '#', label: 'Telegram' },
+    { icon: <LinkedInIcon sx={{ fontSize: 20 }} />, href: '#', label: 'LinkedIn' },
+    { icon: <InstagramIcon sx={{ fontSize: 20 }} />, href: '#', label: 'Instagram' },
+  ];
+
   return (
-    <footer className="bg-gray-900 text-white">
-      {/* Main Footer Content */}
-      <div className="container mx-auto px-4 py-12">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+    <footer className="bg-gradient-to-br from-slate-900 to-blue-900 text-white">
+      {/* Main Footer */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={isVisible ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
+        transition={{ duration: 0.6 }}
+        className="container mx-auto px-4 py-12"
+      >
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-12">
           {/* Company Info */}
-          <div className="md:col-span-2">
-            <Link href="/" className="flex items-center space-x-2 mb-4">
-              <div className="w-8 h-8 bg-gradient-to-br from-blue-400 to-purple-500 rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold text-sm">N</span>
+          <div className="lg:col-span-2 space-y-6">
+            <div className="flex items-start gap-4">
+              <div className="relative">
+                <div className="w-12 h-12 bg-gradient-to-br from-accent to-blue-600 rounded-xl flex items-center justify-center shadow-lg">
+                  <PointOfSaleIcon sx={{ fontSize: 28, color: 'white' }} />
+                </div>
+                <div className="absolute -top-1 -right-1 w-4 h-4 bg-emerald-500 rounded-full border-2 border-slate-900"></div>
               </div>
-              <span className="text-xl font-bold">NextCRM</span>
-            </Link>
-            <p className="text-gray-400 mb-4 max-w-md">
-              Современная CRM система для управления вашим бизнесом. Простое и эффективное решение
-              для управления клиентами, задачами и проектами.
-            </p>
-            <div className="flex space-x-4">
-              <a href="#" className="text-gray-400 hover:text-white transition-colors duration-200">
-                <span className="sr-only">Twitter</span>
-                <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M8.29 20.251c7.547 0 11.675-6.253 11.675-11.675 0-.178 0-.355-.012-.53A8.348 8.348 0 0022 5.92a8.19 8.19 0 01-2.357.646 4.118 4.118 0 001.804-2.27 8.224 8.224 0 01-2.605.996 4.107 4.107 0 00-6.993 3.743 11.65 11.65 0 01-8.457-4.287 4.106 4.106 0 001.27 5.477A4.072 4.072 0 012.8 9.713v.052a4.105 4.105 0 003.292 4.022 4.095 4.095 0 01-1.853.07 4.108 4.108 0 003.834 2.85A8.233 8.233 0 012 18.407a11.616 11.616 0 006.29 1.84" />
-                </svg>
-              </a>
-              <a href="#" className="text-gray-400 hover:text-white transition-colors duration-200">
-                <span className="sr-only">GitHub</span>
-                <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
-                  <path
-                    fillRule="evenodd"
-                    clipRule="evenodd"
-                    d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"
-                  />
-                </svg>
-              </a>
-              <a href="#" className="text-gray-400 hover:text-white transition-colors duration-200">
-                <span className="sr-only">Telegram</span>
-                <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.78 5.42-.9 6.8-.06.67-.36.89-.89.56-2.45-1.83-3.57-2.98-5.79-4.78-.54-.45-.92-.68-.88-1.08.03-.31.46-.47.9-.34 1.55.57 4.04 1.67 4.15 1.63.03-.01.06-.28-.11-.53-.21-.31-.62-.38-.94-.33-.24.04-3.86 2.47-5.23 3.34-.52.33-.84.49-.77.92.04.28.4.4 1.12.67 1.44.54 2.18.8 3.14 1.29.44.23.8.34 1.19.33.54-.01 1.13-.38 1.47-.7 1.07-1.02 2.14-2.89 2.6-4.22.16-.47.32-1.39.35-1.66.06-.45-.12-.63-.45-.65-.15-.01-.33.03-.52.06-.43.09-1.17.31-1.96.51-.75.19-1.3.28-1.33.44-.07.31.45.44 1.24.69.78.25 1.67.57 2.18.83.63.32.96.47 1.07.78.12.31.09.78-.06 1.2z" />
-                </svg>
-              </a>
+              <div>
+                <h2 className="text-2xl font-bold mb-2">КассоСервис</h2>
+                <p className="text-slate-300 leading-relaxed">
+                  Профессиональное обслуживание кассовой техники и бухгалтерские услуги. Более 10
+                  лет на рынке, более 1500 довольных клиентов.
+                </p>
+              </div>
             </div>
+
+            {/* Contact Info */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-4">
+                <a href="tel:+78001234567" className="flex items-center gap-3 group">
+                  <div className="w-10 h-10 bg-gradient-to-br from-emerald-500 to-green-500 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
+                    <PhoneIcon sx={{ fontSize: 20, color: 'white' }} />
+                  </div>
+                  <div>
+                    <p className="font-semibold group-hover:text-emerald-400 transition-colors">
+                      8 (800) 123-45-67
+                    </p>
+                    <p className="text-sm text-slate-400">Бесплатный звонок</p>
+                  </div>
+                </a>
+
+                <a href="mailto:info@kassa-service.ru" className="flex items-center gap-3 group">
+                  <div className="w-10 h-10 bg-gradient-to-br from-accent to-blue-600 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
+                    <EmailIcon sx={{ fontSize: 20, color: 'white' }} />
+                  </div>
+                  <div>
+                    <p className="font-semibold group-hover:text-accent transition-colors">
+                      info@kassa-service.ru
+                    </p>
+                    <p className="text-sm text-slate-400">Электронная почта</p>
+                  </div>
+                </a>
+              </div>
+
+              <div className="space-y-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-pink-500 rounded-lg flex items-center justify-center">
+                    <LocationIcon sx={{ fontSize: 20, color: 'white' }} />
+                  </div>
+                  <div>
+                    <p className="font-semibold">г. Москва, ул. Примерная, д. 123</p>
+                    <p className="text-sm text-slate-400">Офис компании</p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-gradient-to-br from-amber-500 to-orange-500 rounded-lg flex items-center justify-center">
+                    <AccessTimeIcon sx={{ fontSize: 20, color: 'white' }} />
+                  </div>
+                  <div>
+                    <p className="font-semibold">Пн-Пт: 9:00-20:00</p>
+                    <p className="text-sm text-slate-400">Время работы</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Social Links */}
+            <div className="flex items-center gap-4 pt-6 border-t border-slate-700">
+              <span className="text-slate-400">Мы в соцсетях:</span>
+              <div className="flex items-center gap-3">
+                {socialLinks.map((social, index) => (
+                  <motion.a
+                    key={index}
+                    href={social.href}
+                    whileHover={{ scale: 1.1, y: -2 }}
+                    whileTap={{ scale: 0.95 }}
+                    className="w-10 h-10 bg-slate-800 hover:bg-slate-700 rounded-lg flex items-center justify-center transition-colors group"
+                    aria-label={social.label}
+                  >
+                    <div className="group-hover:scale-110 transition-transform">{social.icon}</div>
+                  </motion.a>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Services */}
+          <div>
+            <h3 className="text-lg font-bold mb-6 pb-3 border-b border-slate-700 flex items-center gap-2">
+              <VerifiedIcon sx={{ fontSize: 20, color: 'var(--color-primary)' }} />
+              Наши услуги
+            </h3>
+            <ul className="space-y-3">
+              {services.map((service, index) => (
+                <motion.li
+                  key={index}
+                  initial={{ opacity: 0, x: -10 }}
+                  animate={isVisible ? { opacity: 1, x: 0 } : { opacity: 0, x: -10 }}
+                  transition={{ delay: index * 0.1 }}
+                >
+                  <Link
+                    href={`/services#${service.label.toLowerCase().replace(/\s+/g, '-')}`}
+                    className="flex items-center gap-3 text-slate-300 hover:text-white transition-colors group"
+                  >
+                    <div className="text-accent opacity-70 group-hover:opacity-100 transition-opacity">
+                      {service.icon}
+                    </div>
+                    <span className="group-hover:translate-x-1 transition-transform">
+                      {service.label}
+                    </span>
+                  </Link>
+                </motion.li>
+              ))}
+            </ul>
           </div>
 
           {/* Quick Links */}
           <div>
-            <h3 className="text-lg font-semibold mb-4">Навигация</h3>
-            <ul className="space-y-2">
-              <li>
-                <Link
-                  href="/"
-                  className="text-gray-400 hover:text-white transition-colors duration-200"
-                >
-                  Главная
-                </Link>
-              </li>
-              <li>
-                <Link
-                  href="/features"
-                  className="text-gray-400 hover:text-white transition-colors duration-200"
-                >
-                  Возможности
-                </Link>
-              </li>
-              <li>
-                <Link
-                  href="/pricing"
-                  className="text-gray-400 hover:text-white transition-colors duration-200"
-                >
-                  Тарифы
-                </Link>
-              </li>
-              <li>
-                <Link
-                  href="/contact"
-                  className="text-gray-400 hover:text-white transition-colors duration-200"
-                >
-                  Контакты
-                </Link>
-              </li>
-            </ul>
-          </div>
-
-          {/* Support */}
-          <div>
-            <h3 className="text-lg font-semibold mb-4">Поддержка</h3>
-            <ul className="space-y-2">
-              <li>
-                <Link
-                  href="/help"
-                  className="text-gray-400 hover:text-white transition-colors duration-200"
-                >
-                  Помощь
-                </Link>
-              </li>
-              <li>
-                <Link
-                  href="/docs"
-                  className="text-gray-400 hover:text-white transition-colors duration-200"
-                >
-                  Документация
-                </Link>
-              </li>
-              <li>
-                <Link
-                  href="/privacy"
-                  className="text-gray-400 hover:text-white transition-colors duration-200"
-                >
-                  Конфиденциальность
-                </Link>
-              </li>
-              <li>
-                <Link
-                  href="/terms"
-                  className="text-gray-400 hover:text-white transition-colors duration-200"
-                >
-                  Условия использования
-                </Link>
-              </li>
-            </ul>
-          </div>
-        </div>
-      </div>
-
-      {/* Bottom Bar with System Info */}
-      <div className="border-t border-gray-800">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
-            {/* Copyright */}
-            <div className="text-gray-400 text-sm">© 2026 NextCRM. Все права защищены.</div>
-
-            {/* System Information */}
-            <div className="flex flex-wrap items-center justify-center gap-6 text-sm text-gray-400">
-              {/* Version */}
-              <div className="flex items-center space-x-2">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"
-                  />
-                </svg>
-                <span>v1.0.0</span>
+            <h3 className="text-lg font-bold mb-6 pb-3 border-b border-slate-700">Навигация</h3>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-3">
+                <h4 className="text-sm font-semibold text-slate-400 uppercase tracking-wider">
+                  Сайт
+                </h4>
+                <ul className="space-y-2">
+                  {quickLinks.map((link, index) => (
+                    <motion.li
+                      key={index}
+                      initial={{ opacity: 0, x: -10 }}
+                      animate={isVisible ? { opacity: 1, x: 0 } : { opacity: 0, x: -10 }}
+                      transition={{ delay: 0.2 + index * 0.1 }}
+                    >
+                      <Link
+                        href={link.href}
+                        className="text-sm text-slate-300 hover:text-white transition-colors hover:pl-2 duration-200"
+                      >
+                        {link.label}
+                      </Link>
+                    </motion.li>
+                  ))}
+                </ul>
               </div>
 
+              <div className="space-y-3">
+                <h4 className="text-sm font-semibold text-slate-400 uppercase tracking-wider">
+                  Документы
+                </h4>
+                <ul className="space-y-2">
+                  {legalLinks.map((link, index) => (
+                    <motion.li
+                      key={index}
+                      initial={{ opacity: 0, x: -10 }}
+                      animate={isVisible ? { opacity: 1, x: 0 } : { opacity: 0, x: -10 }}
+                      transition={{ delay: 0.3 + index * 0.1 }}
+                    >
+                      <Link
+                        href={link.href}
+                        className="text-sm text-slate-300 hover:text-white transition-colors hover:pl-2 duration-200"
+                      >
+                        {link.label}
+                      </Link>
+                    </motion.li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+      </motion.div>
+
+      {/* Bottom Bar with System Info */}
+      <div className="border-t border-slate-800 bg-slate-900/50 backdrop-blur-sm">
+        <div className="container mx-auto px-4 py-6">
+          <div className="flex flex-col lg:flex-row justify-between items-center gap-6">
+            {/* Copyright */}
+            <div className="text-center lg:text-left">
+              <p className="text-slate-400 text-sm">© 2026 КассоСервис. Все права защищены.</p>
+              <p className="text-xs text-slate-500 mt-1">
+                ООО КассоСервис, ИНН 1234567890, ОГРН 1234567890123
+              </p>
+            </div>
+
+            {/* System Information */}
+            <div className="flex flex-wrap items-center justify-center gap-4 lg:gap-6 text-sm">
               {/* Database Status */}
-              <div className="flex items-center space-x-2" title={`Проверено: ${lastChecked}`}>
+              <motion.div
+                whileHover={{ scale: 1.05 }}
+                className={`flex items-center gap-2 px-3 py-1.5 rounded-lg ${dbStatus === 'connected' ? 'bg-emerald-900/20' : 'bg-red-900/20'}`}
+                title={`Проверено: ${lastChecked}`}
+              >
                 <div className={`w-2 h-2 rounded-full ${getDbStatusDot()}`}></div>
-                <span>БД: {getDbStatusText()}</span>
+                <span className={getDbStatusColor()}>БД: {getDbStatusText()}</span>
                 {dbResponseTime && (
-                  <span className="text-xs text-gray-500">({dbResponseTime})</span>
+                  <span className="text-xs text-slate-400">({dbResponseTime})</span>
                 )}
+              </motion.div>
+
+              {/* Version */}
+              <div className="flex items-center gap-2 text-slate-400">
+                <CodeIcon sx={{ fontSize: 16 }} />
+                <span>v2.0.1</span>
               </div>
 
               {/* Current User */}
-              <div className="flex items-center space-x-2">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
-                  />
-                </svg>
+              <div className="flex items-center gap-2 text-slate-400">
+                <PersonIcon sx={{ fontSize: 16 }} />
                 <span>{currentUser}</span>
               </div>
 
               {/* Current Time */}
-              <div className="flex items-center space-x-2">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-                  />
-                </svg>
-                <span>{currentTime.toLocaleTimeString('ru-RU')}</span>
+              <div className="flex items-center gap-2 text-slate-400">
+                <ScheduleIcon sx={{ fontSize: 16 }} />
+
+                <span>
+                 {/*urrentTime.toLocaleTimeString('ru-RU')}*/}
+                 </span>
+              </div>
+
+              {/* Environment */}
+              <div className="flex items-center gap-2 text-slate-400">
+                <CloudIcon sx={{ fontSize: 16 }} />
+                <span>PROD</span>
               </div>
             </div>
 
-            {/* Status Notice */}
-            <div
-              className={`text-xs px-2 py-1 rounded ${
+            {/* Status Badge */}
+            <motion.div
+              whileHover={{ scale: 1.05 }}
+              className={`px-4 py-2 rounded-full text-sm font-medium ${
                 dbStatus === 'connected'
-                  ? 'text-green-400 bg-green-900/20'
+                  ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
                   : dbStatus === 'disconnected'
-                    ? 'text-red-400 bg-red-900/20'
-                    : 'text-yellow-400 bg-yellow-900/20'
+                    ? 'bg-red-500/10 text-red-400 border border-red-500/20'
+                    : 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
               }`}
             >
               {dbStatus === 'connected'
-                ? '✅ Активно'
+                ? '✅ Система активна'
                 : dbStatus === 'disconnected'
-                  ? '❌ Ошибка'
-                  : '🔄 Загрузка'}
-            </div>
+                  ? '❌ Технические работы'
+                  : '🔄 Проверка состояния'}
+            </motion.div>
           </div>
         </div>
       </div>
