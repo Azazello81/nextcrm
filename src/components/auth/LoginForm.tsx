@@ -297,7 +297,7 @@ export default function LoginForm() {
                   <div className="flex items-center justify-between mb-1">
                     <div
                       id="password-hint"
-                      className={`text-xs ${isPasswordValid ? 'text-accent' : 'text-red-500'}`}
+                      className={`text-xs ${isPasswordValid ? 'text-accent' : 'text-gray-500'}`}
                       aria-live="polite"
                     >
                       {isPasswordValid
@@ -319,7 +319,7 @@ export default function LoginForm() {
                         </svg>
                       ) : (
                         <svg
-                          className="w-4 h-4 text-red-500"
+                          className="w-4 h-4 text-accent"
                           viewBox="0 0 20 20"
                           fill="currentColor"
                         >
@@ -340,7 +340,7 @@ export default function LoginForm() {
                     className="w-full h-2 bg-gray-200 rounded overflow-hidden"
                   >
                     <div
-                      className={`${isPasswordValid ? 'bg-accent' : 'bg-red-500'} h-full transition-width duration-150`}
+                      className={`${isPasswordValid ? 'bg-accent' : 'bg-gray-400'} h-full transition-width duration-150`}
                       style={{ width: `${passwordProgress}%` }}
                     />
                   </div>

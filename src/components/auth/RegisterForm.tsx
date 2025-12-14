@@ -1,6 +1,7 @@
 // src/components/auth/RegisterForm.tsx
 'use client';
 
+import { useRouter } from 'next/navigation';
 import { useState, useEffect, ChangeEvent, ReactNode } from 'react';
 import { JWTClientService } from '@lib/auth/jwt-client';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -63,7 +64,7 @@ const ErrorMessage = ({ error }: { error: string }) => (
     className="error-message mb-6"
   >
     <div className="flex items-start">
-      <svg className="w-5 h-5 mt-0.5 mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+      <svg className="w-5 h-5 mt-0.5 mr-3 shrink-0" fill="currentColor" viewBox="0 0 20 20">
         <path
           fillRule="evenodd"
           d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
@@ -248,6 +249,7 @@ const SubmitButton = ({
 
 // Основной компонент
 export default function RegisterForm() {
+  const router = useRouter();
   const [step, setStep] = useState<number>(1);
   const [email, setEmail] = useState<string>('');
   const [password, setPassword] = useState<string>('');
@@ -367,6 +369,7 @@ export default function RegisterForm() {
             role: data.user.role,
             registeredAt: parseDate(data.user.registeredAt),
             lastLoginAt: parseDate(data.user.lastLoginAt),
+            isActive: true,
           };
           setUser(authUser);
         }
@@ -374,10 +377,8 @@ export default function RegisterForm() {
         // Для совместимости сохраняем также в localStorage
         JWTClientService.storeToken(data.token);
 
-        // Редирект на личный кабинет
-        if (globalThis.window !== undefined) {
-          globalThis.window.location.href = '/user';
-        }
+        // SPA редирект на личный кабинет
+        router.push('/user');
       } else {
         setError(data.message || 'Ошибка верификации');
       }
@@ -487,7 +488,7 @@ export default function RegisterForm() {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3 }}
     >
-      <div className="mb-6 p-4 bg-gradient-to-r from-blue-50 to-blue-100 rounded-lg border border-blue-200">
+      <div className="mb-6 p-4 bg-linear-to-r from-blue-50 to-blue-100 rounded-lg border border-blue-200">
         <p className="text-sm text-blue-800 mb-2">
           На email <strong className="text-blue-900">{email}</strong> был отправлен 6-значный код
           подтверждения.
@@ -509,7 +510,7 @@ export default function RegisterForm() {
           type="text"
           value={verificationCode}
           onChange={handleVerificationCodeChange}
-          placeholder="123456"
+          placeholder="••••••"
           required
           pattern="[0-9]{6}"
           maxLength={6}

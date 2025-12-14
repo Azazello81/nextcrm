@@ -43,6 +43,7 @@ export default function Footer() {
   const [currentTime, setCurrentTime] = useState(new Date());
   const [lastChecked, setLastChecked] = useState<string>('');
   const [isVisible, setIsVisible] = useState(false);
+  const [mounted, setMounted] = useState(false);
 
   // Функция для получения реального статуса БД
   const fetchDbStatus = async () => {
@@ -94,6 +95,9 @@ export default function Footer() {
     const timeTimer = setInterval(() => {
       setCurrentTime(new Date());
     }, 1000);
+
+    // mark mounted to avoid hydration mismatch with server-rendered time
+    setMounted(true);
 
     // Обновляем статус БД каждые 30 секунд
     const statusTimer = setInterval(fetchDbStatus, 30000);
@@ -176,7 +180,7 @@ export default function Footer() {
   ];
 
   return (
-    <footer className="bg-gradient-to-br from-slate-900 to-blue-900 text-white">
+    <footer className="bg-linear-to-br from-slate-900 to-blue-900 text-white">
       {/* Main Footer */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
@@ -189,7 +193,7 @@ export default function Footer() {
           <div className="lg:col-span-2 space-y-6">
             <div className="flex items-start gap-4">
               <div className="relative">
-                <div className="w-12 h-12 bg-gradient-to-br from-accent to-blue-600 rounded-xl flex items-center justify-center shadow-lg">
+                <div className="w-12 h-12 bg-linear-to-br from-accent to-blue-600 rounded-xl flex items-center justify-center shadow-lg">
                   <PointOfSaleIcon sx={{ fontSize: 28, color: 'white' }} />
                 </div>
                 <div className="absolute -top-1 -right-1 w-4 h-4 bg-emerald-500 rounded-full border-2 border-slate-900"></div>
@@ -207,7 +211,7 @@ export default function Footer() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-4">
                 <a href="tel:+78001234567" className="flex items-center gap-3 group">
-                  <div className="w-10 h-10 bg-gradient-to-br from-emerald-500 to-green-500 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
+                  <div className="w-10 h-10 bg-linear-to-br from-emerald-500 to-green-500 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
                     <PhoneIcon sx={{ fontSize: 20, color: 'white' }} />
                   </div>
                   <div>
@@ -219,7 +223,7 @@ export default function Footer() {
                 </a>
 
                 <a href="mailto:info@kassa-service.ru" className="flex items-center gap-3 group">
-                  <div className="w-10 h-10 bg-gradient-to-br from-accent to-blue-600 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
+                  <div className="w-10 h-10 bg-linear-to-br from-accent to-blue-600 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
                     <EmailIcon sx={{ fontSize: 20, color: 'white' }} />
                   </div>
                   <div>
@@ -233,7 +237,7 @@ export default function Footer() {
 
               <div className="space-y-4">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-pink-500 rounded-lg flex items-center justify-center">
+                  <div className="w-10 h-10 bg-linear-to-br from-purple-500 to-pink-500 rounded-lg flex items-center justify-center">
                     <LocationIcon sx={{ fontSize: 20, color: 'white' }} />
                   </div>
                   <div>
@@ -243,7 +247,7 @@ export default function Footer() {
                 </div>
 
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-gradient-to-br from-amber-500 to-orange-500 rounded-lg flex items-center justify-center">
+                  <div className="w-10 h-10 bg-linear-to-br from-amber-500 to-orange-500 rounded-lg flex items-center justify-center">
                     <AccessTimeIcon sx={{ fontSize: 20, color: 'white' }} />
                   </div>
                   <div>
@@ -401,9 +405,9 @@ export default function Footer() {
               <div className="flex items-center gap-2 text-slate-400">
                 <ScheduleIcon sx={{ fontSize: 16 }} />
 
-                <span>
-                 {/*urrentTime.toLocaleTimeString('ru-RU')}*/}
-                 </span>
+                <span aria-live="polite">
+                  {mounted ? currentTime.toLocaleTimeString('ru-RU') : '--:--:--'}
+                </span>
               </div>
 
               {/* Environment */}

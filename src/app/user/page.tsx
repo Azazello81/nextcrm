@@ -41,7 +41,7 @@ const InfoItem = ({
   icon?: React.ReactNode;
   actions?: React.ReactNode;
 }) => (
-  <div className="p-4 rounded-lg bg-gradient-to-r from-slate-50 to-white border border-color">
+  <div className="p-4 rounded-lg bg-linear-to-r from-slate-50 to-white border border-color">
     <div className="flex items-start space-x-3">
       {icon && <div className="p-2 rounded-lg bg-accent/10">{icon}</div>}
       <div className="flex-1">
@@ -86,7 +86,7 @@ const FunctionCard = ({
     <motion.div
       whileHover={!disabled ? { y: -4 } : {}}
       whileTap={!disabled ? { scale: 0.98 } : {}}
-      className={`block p-6 rounded-lg border ${colorClasses[color]} bg-gradient-to-br transition-all duration-200 ${disabledClasses}`}
+      className={`block p-6 rounded-lg border ${colorClasses[color]} bg-linear-to-br transition-all duration-200 ${disabledClasses}`}
     >
       <div className="flex items-start space-x-4">
         <div className="p-3 rounded-lg bg-white/50">{icon}</div>
@@ -128,7 +128,7 @@ const LogoutButton = ({ onClick }: { onClick: () => void }) => {
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
       whileTap={{ scale: 0.95 }}
-      className="flex items-center space-x-2 px-4 py-2.5 rounded-lg bg-gradient-to-r from-red-500 to-red-600 text-white hover:from-red-600 hover:to-red-700 transition-all duration-200 shadow-md hover:shadow-lg"
+      className="flex items-center space-x-2 px-4 py-2.5 rounded-lg bg-linear-to-r from-red-500 to-red-600 text-white hover:from-red-600 hover:to-red-700 transition-all duration-200 shadow-md hover:shadow-lg"
     >
       <svg
         className={`w-5 h-5 transition-transform duration-200 ${isHovered ? 'rotate-12' : ''}`}
@@ -199,7 +199,7 @@ const RoleBadge = ({ role }: { role: UserRole }) => {
 
   return (
     <div
-      className={`px-3 py-1 rounded-full bg-gradient-to-r ${config.color} text-white text-sm font-medium flex items-center space-x-2`}
+      className={`px-3 py-1 rounded-full bg-linear-to-r ${config.color} text-white text-sm font-medium flex items-center space-x-2`}
     >
       {config.icon}
       <span>{config.text}</span>
@@ -429,7 +429,7 @@ export default function UserPage() {
               <Link href="/" className="flex items-center space-x-3 group">
                 <motion.div
                   whileHover={{ rotate: 15 }}
-                  className="w-10 h-10 rounded-lg bg-gradient-to-r from-accent to-blue-500 flex items-center justify-center shadow-md"
+                  className="w-10 h-10 rounded-lg bg-linear-to-r from-accent to-blue-500 flex items-center justify-center shadow-md"
                 >
                   <svg
                     className="w-6 h-6 text-white"
@@ -511,7 +511,7 @@ export default function UserPage() {
                     <RoleBadge role={user.role} />
                   </div>
                 </div>
-                <div className="w-10 h-10 rounded-full bg-gradient-to-r from-accent to-blue-500 flex items-center justify-center text-white font-semibold shadow-md">
+                <div className="w-10 h-10 rounded-full bg-linear-to-r from-accent to-blue-500 flex items-center justify-center text-white font-semibold shadow-md">
                   {getInitials()}
                 </div>
               </motion.div>
@@ -1457,39 +1457,39 @@ export default function UserPage() {
             <InfoCard>
               <h3 className="text-lg font-semibold text-primary mb-4">Права доступа</h3>
               <div className="space-y-4">
-                <div className="flex items-center justify-between p-3 rounded-lg bg-gradient-to-r from-slate-50 to-white">
+                <div className="flex items-center justify-between p-3 rounded-lg bg-linear-to-r from-slate-50 to-white">
                   <span className="text-secondary">Админ панель</span>
                   <span
                     className={`px-3 py-1 rounded-full text-sm font-medium ${
                       isAdmin() || isManager()
-                        ? 'bg-gradient-to-r from-green-500 to-green-600 text-white'
-                        : 'bg-gradient-to-r from-gray-300 to-gray-400 text-gray-700'
+                        ? 'bg-linear-to-r from-green-500 to-green-600 text-white'
+                        : 'bg-linear-to-r from-gray-300 to-gray-400 text-gray-700'
                     }`}
                   >
                     {isAdmin() || isManager() ? 'Доступно' : 'Недоступно'}
                   </span>
                 </div>
-                <div className="flex items-center justify-between p-3 rounded-lg bg-gradient-to-r from-slate-50 to-white">
+                <div className="flex items-center justify-between p-3 rounded-lg bg-linear-to-r from-slate-50 to-white">
                   <span className="text-secondary">Управление пользователями</span>
                   <span
                     className={`px-3 py-1 rounded-full text-sm font-medium ${
                       isAdmin()
-                        ? 'bg-gradient-to-r from-green-500 to-green-600 text-white'
+                        ? 'bg-linear-to-r from-green-500 to-green-600 text-white'
                         : isManager()
-                          ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white'
-                          : 'bg-gradient-to-r from-gray-300 to-gray-400 text-gray-700'
+                          ? 'bg-linear-to-r from-blue-500 to-blue-600 text-white'
+                          : 'bg-linear-to-r from-gray-300 to-gray-400 text-gray-700'
                     }`}
                   >
                     {isAdmin() ? 'Полный доступ' : isManager() ? 'Ограниченный' : 'Недоступно'}
                   </span>
                 </div>
-                <div className="flex items-center justify-between p-3 rounded-lg bg-gradient-to-r from-slate-50 to-white">
+                <div className="flex items-center justify-between p-3 rounded-lg bg-linear-to-r from-slate-50 to-white">
                   <span className="text-secondary">Настройки системы</span>
                   <span
                     className={`px-3 py-1 rounded-full text-sm font-medium ${
                       isAdmin()
-                        ? 'bg-gradient-to-r from-green-500 to-green-600 text-white'
-                        : 'bg-gradient-to-r from-gray-300 to-gray-400 text-gray-700'
+                        ? 'bg-linear-to-r from-green-500 to-green-600 text-white'
+                        : 'bg-linear-to-r from-gray-300 to-gray-400 text-gray-700'
                     }`}
                   >
                     {isAdmin() ? 'Доступно' : 'Недоступно'}
@@ -1504,7 +1504,7 @@ export default function UserPage() {
               <div className="space-y-3">
                 <Link
                   href="/help"
-                  className="flex items-center justify-between p-3 rounded-lg hover:bg-gradient-to-r from-slate-50 to-white transition-all duration-200"
+                  className="flex items-center justify-between p-3 rounded-lg hover:bg-linear-to-r from-slate-50 to-white transition-all duration-200"
                 >
                   <div className="flex items-center space-x-3">
                     <svg
@@ -1538,7 +1538,7 @@ export default function UserPage() {
                 </Link>
                 <Link
                   href="/docs"
-                  className="flex items-center justify-between p-3 rounded-lg hover:bg-gradient-to-r from-slate-50 to-white transition-all duration-200"
+                  className="flex items-center justify-between p-3 rounded-lg hover:bg-linear-to-r from-slate-50 to-white transition-all duration-200"
                 >
                   <div className="flex items-center space-x-3">
                     <svg

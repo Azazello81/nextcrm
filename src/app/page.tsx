@@ -5,6 +5,7 @@ import { useState } from 'react';
 import Header from '../components/ui/Header/Header';
 import Footer from '../components/ui/Footer/Footer';
 import { motion } from 'framer-motion';
+import { useRouter } from 'next/navigation';
 import {
   PointOfSale,
   Calculate,
@@ -129,6 +130,7 @@ const faqItems = [
 export default function HomePage() {
   const isLoading = false;
   const [activeService, setActiveService] = useState(0);
+  const router = useRouter();
   const [formData, setFormData] = useState({
     name: '',
     phone: '',
@@ -159,10 +161,10 @@ export default function HomePage() {
     <>
       <Header />
 
-      <main className="flex-grow bg-gradient-to-br from-slate-50 to-slate-100">
+      <main className="grow bg-linear-to-br from-slate-50 to-slate-100">
         {/* Hero Section */}
         <section className="relative overflow-hidden py-20 md:py-32">
-          <div className="absolute inset-0 bg-gradient-to-br from-accent/10 via-transparent to-slate-900/10"></div>
+          <div className="absolute inset-0 bg-linear-to-br from-accent/10 via-transparent to-slate-900/10"></div>
           <div className="absolute top-0 right-0 w-1/3 h-1/3 bg-accent/5 rounded-full blur-3xl"></div>
 
           <div className="container mx-auto px-4 relative">
@@ -181,7 +183,7 @@ export default function HomePage() {
 
                 <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-6 text-slate-900 leading-tight">
                   <span className="text-slate-900">Профессиональное</span>{' '}
-                  <span className="bg-gradient-to-r from-accent to-blue-600 bg-clip-text text-transparent">
+                  <span className="bg-linear-to-r from-accent to-blue-600 bg-clip-text text-transparent">
                     обслуживание касс
                   </span>{' '}
                   <span className="text-slate-900">и бухгалтерские услуги</span>
@@ -195,7 +197,7 @@ export default function HomePage() {
                 <div className="flex flex-col sm:flex-row gap-4">
                   <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
                     <Link
-                      href="/auth/signin"
+                      href="/login"
                       className="btn-accent px-8 py-4 text-lg font-semibold rounded-xl flex items-center gap-2 group"
                     >
                       <HeadsetMic sx={{ fontSize: 20 }} />
@@ -240,7 +242,7 @@ export default function HomePage() {
               >
                 <div className="relative bg-white/90 backdrop-blur-sm rounded-2xl p-8 shadow-2xl border border-slate-200">
                   <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
-                    <div className="bg-gradient-to-r from-accent to-blue-600 text-white px-6 py-2 rounded-full font-semibold">
+                    <div className="bg-linear-to-r from-accent to-blue-600 text-white px-6 py-2 rounded-full font-semibold">
                       Онлайн-заявка
                     </div>
                   </div>
@@ -298,7 +300,7 @@ export default function HomePage() {
                       type="submit"
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
-                      className="w-full bg-gradient-to-r from-accent to-blue-600 text-white py-3 rounded-xl font-semibold hover:shadow-lg transition-shadow flex items-center justify-center gap-2"
+                      className="w-full bg-linear-to-r from-accent to-blue-600 text-white py-3 rounded-xl font-semibold hover:shadow-lg transition-shadow flex items-center justify-center gap-2"
                     >
                       <AssignmentTurnedIn sx={{ fontSize: 20 }} />
                       Отправить заявку
@@ -318,7 +320,7 @@ export default function HomePage() {
                       repeat: Infinity,
                       ease: 'linear',
                     }}
-                    className="absolute top-1/4 left-1/4 w-32 h-32 bg-gradient-to-r from-accent/10 to-blue-600/10 rounded-full blur-xl"
+                    className="absolute top-1/4 left-1/4 w-32 h-32 bg-linear-to-r from-accent/10 to-blue-600/10 rounded-full blur-xl"
                   />
                   <motion.div
                     animate={{
@@ -330,7 +332,7 @@ export default function HomePage() {
                       repeat: Infinity,
                       ease: 'linear',
                     }}
-                    className="absolute bottom-1/4 right-1/4 w-40 h-40 bg-gradient-to-r from-purple-500/10 to-pink-500/10 rounded-full blur-xl"
+                    className="absolute bottom-1/4 right-1/4 w-40 h-40 bg-linear-to-r from-purple-500/10 to-pink-500/10 rounded-full blur-xl"
                   />
                 </div>
               </motion.div>
@@ -367,10 +369,10 @@ export default function HomePage() {
                   whileHover={{ y: -10 }}
                   className={`${service.bgColor} rounded-2xl p-8 border border-slate-200 hover:shadow-xl transition-all duration-300 cursor-pointer ${activeService === index ? 'ring-2 ring-accent border-accent' : ''}`}
                   onMouseEnter={() => setActiveService(index)}
-                  onClick={() => (window.location.href = `/services/${index + 1}`)}
+                  onClick={() => router.push(`/services/${index + 1}`)}
                 >
                   <div
-                    className={`inline-flex p-4 rounded-2xl bg-gradient-to-r ${service.color} text-white mb-6`}
+                    className={`inline-flex p-4 rounded-2xl bg-linear-to-r ${service.color} text-white mb-6`}
                   >
                     {service.icon}
                   </div>
@@ -387,7 +389,7 @@ export default function HomePage() {
         </section>
 
         {/* Advantages Section */}
-        <section className="py-20 bg-gradient-to-br from-slate-50 to-blue-50">
+        <section className="py-20 bg-linear-to-br from-slate-50 to-blue-50">
           <div className="container mx-auto px-4">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
               <motion.div
@@ -426,7 +428,7 @@ export default function HomePage() {
               >
                 <div className="bg-white rounded-2xl p-8 shadow-xl border border-slate-200">
                   <div className="flex items-center gap-4 mb-6">
-                    <div className="bg-gradient-to-r from-accent to-blue-600 p-3 rounded-xl">
+                    <div className="bg-linear-to-r from-accent to-blue-600 p-3 rounded-xl">
                       <AccessTime sx={{ fontSize: 24, color: 'white' }} />
                     </div>
                     <div>
@@ -455,7 +457,7 @@ export default function HomePage() {
                   <motion.button
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
-                    className="w-full mt-8 bg-gradient-to-r from-accent to-blue-600 text-white py-4 rounded-xl font-semibold hover:shadow-lg transition-shadow flex items-center justify-center gap-2"
+                    className="w-full mt-8 bg-linear-to-r from-accent to-blue-600 text-white py-4 rounded-xl font-semibold hover:shadow-lg transition-shadow flex items-center justify-center gap-2"
                   >
                     <Download sx={{ fontSize: 20 }} />
                     Скачать прайс-лист
@@ -499,7 +501,7 @@ export default function HomePage() {
         </section>
 
         {/* CTA Section */}
-        <section className="py-20 bg-gradient-to-r from-slate-900 to-blue-900 text-white">
+        <section className="py-20 bg-linear-to-r from-slate-900 to-blue-900 text-white">
           <div className="container mx-auto px-4">
             <motion.div
               initial={{ opacity: 0, y: 20 }}

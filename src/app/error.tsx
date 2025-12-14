@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 
 interface ErrorProps {
   error: Error & { digest?: string };
@@ -10,6 +11,7 @@ interface ErrorProps {
 export default function Error({ error, reset }: ErrorProps) {
   const [mounted, setMounted] = useState(false);
   const [incidentId, setIncidentId] = useState('');
+  const router = useRouter();
 
   useEffect(() => {
     console.error('System Error:', error);
@@ -39,7 +41,7 @@ export default function Error({ error, reset }: ErrorProps) {
 
   if (!incidentId) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-gray-100 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-linear-to-br from-slate-50 to-gray-100 flex items-center justify-center p-4">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
           <p className="text-gray-600">Загрузка информации об ошибке...</p>
@@ -49,11 +51,11 @@ export default function Error({ error, reset }: ErrorProps) {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-gray-100 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-linear-to-br from-slate-50 to-gray-100 flex items-center justify-center p-4">
       <div className="max-w-4xl w-full">
         <div className="bg-white rounded-2xl shadow-xl border border-gray-200 overflow-hidden">
           {/* Header */}
-          <div className="bg-gradient-to-r from-red-600 to-red-700 px-8 py-6">
+          <div className="bg-linear-to-r from-red-600 to-red-700 px-8 py-6">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-3">
                 <div className="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center">
@@ -95,7 +97,7 @@ export default function Error({ error, reset }: ErrorProps) {
 
                     <div className="bg-red-50 border border-red-200 rounded-lg p-4">
                       <div className="flex items-start space-x-3">
-                        <div className="w-6 h-6 bg-red-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                        <div className="w-6 h-6 bg-red-100 rounded-full flex items-center justify-center shrink-0 mt-0.5">
                           <span className="text-red-600 text-sm">!</span>
                         </div>
                         <div className="text-sm">
@@ -147,7 +149,7 @@ export default function Error({ error, reset }: ErrorProps) {
                     <span>Повторить запрос</span>
                   </button>
                   <button
-                    onClick={() => (window.location.href = '/')}
+                    onClick={() => router.push('/')}
                     className="flex-1 bg-white text-gray-700 px-6 py-3 rounded-xl font-semibold hover:bg-gray-50 transition-all duration-300 border border-gray-300 text-center flex items-center justify-center space-x-2"
                   >
                     <span>🏠</span>
@@ -158,7 +160,7 @@ export default function Error({ error, reset }: ErrorProps) {
 
               {/* Right Column - Recovery Actions */}
               <div>
-                <div className="bg-gradient-to-br from-slate-50 to-gray-100 rounded-xl p-6 border border-gray-200">
+                <div className="bg-linear-to-br from-slate-50 to-gray-100 rounded-xl p-6 border border-gray-200">
                   <h3 className="font-semibold text-gray-900 mb-4 flex items-center">
                     <span className="w-2 h-2 bg-blue-500 rounded-full mr-2"></span>
                     Рекомендуемые действия
@@ -166,7 +168,7 @@ export default function Error({ error, reset }: ErrorProps) {
 
                   <div className="space-y-4">
                     <div className="flex items-start space-x-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
-                      <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                      <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center shrink-0 mt-0.5">
                         <span className="text-blue-600 text-sm">1</span>
                       </div>
                       <div className="text-sm">
@@ -180,7 +182,7 @@ export default function Error({ error, reset }: ErrorProps) {
                     </div>
 
                     <div className="flex items-start space-x-3 p-3 bg-green-50 rounded-lg border border-green-200">
-                      <div className="w-6 h-6 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                      <div className="w-6 h-6 bg-green-100 rounded-full flex items-center justify-center shrink-0 mt-0.5">
                         <span className="text-green-600 text-sm">2</span>
                       </div>
                       <div className="text-sm">
@@ -190,7 +192,7 @@ export default function Error({ error, reset }: ErrorProps) {
                     </div>
 
                     <div className="flex items-start space-x-3 p-3 bg-orange-50 rounded-lg border border-orange-200">
-                      <div className="w-6 h-6 bg-orange-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                      <div className="w-6 h-6 bg-orange-100 rounded-full flex items-center justify-center shrink-0 mt-0.5">
                         <span className="text-orange-600 text-sm">3</span>
                       </div>
                       <div className="text-sm">

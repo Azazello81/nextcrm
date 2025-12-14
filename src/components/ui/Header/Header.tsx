@@ -21,23 +21,23 @@ import {
   Verified as VerifiedIcon,
 } from '@mui/icons-material';
 
-interface User {
-  id: string;
-  login: string;
+interface HeaderUser {
+  id?: string;
+  login?: string;
   name?: string;
-  firstName?: string;
-  lastName?: string;
-  middleName?: string;
-  email?: string;
-  phone?: string;
-  datereg: Date;
-  dateactiv: Date;
-  avatar?: string;
-  role: 'admin' | 'manager' | 'user';
+  firstName?: string | null;
+  lastName?: string | null;
+  middleName?: string | null;
+  email?: string | null;
+  phone?: string | null;
+  datereg?: Date | null;
+  dateactiv?: Date | null;
+  avatar?: string | null;
+  role?: 'admin' | 'manager' | 'user' | string | null;
 }
 
 interface HeaderProps {
-  user?: User | null;
+  user?: HeaderUser | null;
   onLogout?: () => void;
 }
 
@@ -78,7 +78,7 @@ export default function Header({ user, onLogout }: HeaderProps) {
     return () => clearTimeout(id);
   }, []);
   const currentUser = mounted ? storeUser || user : user;
-  const buildFullNameFromFields = (u?: User | null) => {
+  const buildFullNameFromFields = (u?: HeaderUser | null) => {
     if (!u) return undefined;
     const parts: string[] = [];
     if (u.lastName) parts.push(u.lastName);
@@ -89,7 +89,7 @@ export default function Header({ user, onLogout }: HeaderProps) {
     return undefined;
   };
 
-  const buildInitialFromFields = (u?: User | null) => {
+  const buildInitialFromFields = (u?: HeaderUser | null) => {
     if (!u) return undefined;
     if (u.lastName) return u.lastName.charAt(0).toUpperCase();
     if (u.firstName) return u.firstName.charAt(0).toUpperCase();
@@ -101,21 +101,46 @@ export default function Header({ user, onLogout }: HeaderProps) {
   const nameFromFields = buildFullNameFromFields(currentUser);
   const initialFromFields = buildInitialFromFields(currentUser);
 
+  // Функция для формирования "Фамилия И.О." формата
+  const buildShortNameFromFields = (u?: HeaderUser | null) => {
+    if (!u) return undefined;
+
+    const lastName = u.lastName?.trim();
+    const firstName = u.firstName?.trim();
+    const middleName = u.middleName?.trim();
+
+    if (lastName && firstName && middleName) {
+      return `${lastName} ${firstName.charAt(0)}.${middleName.charAt(0)}.`;
+    } else if (lastName && firstName) {
+      return `${lastName} ${firstName.charAt(0)}.`;
+    } else if (lastName) {
+      return lastName;
+    }
+
+    return undefined;
+  };
+
+  const shortNameFromFields = buildShortNameFromFields(currentUser);
+
   const displayName = mounted
-    ? storeFullName || nameFromFields || currentUser?.email || currentUser?.login
-    : nameFromFields || currentUser?.email || currentUser?.login;
+    ? storeFullName ||
+      shortNameFromFields ||
+      nameFromFields ||
+      currentUser?.email ||
+      (currentUser as HeaderUser)?.login
+    : shortNameFromFields ||
+      nameFromFields ||
+      currentUser?.email ||
+      (currentUser as HeaderUser)?.login;
 
   const displayInitial = mounted
-    ? storeInitials || initialFromFields || currentUser?.login?.charAt(0)?.toUpperCase()
-    : initialFromFields || currentUser?.login?.charAt(0)?.toUpperCase();
+    ? storeInitials ||
+      initialFromFields ||
+      (currentUser as HeaderUser)?.login?.charAt(0)?.toUpperCase()
+    : initialFromFields || (currentUser as HeaderUser)?.login?.charAt(0)?.toUpperCase();
 
   const handleProfileClick = () => {
-    if (currentUser) {
-      const role = String(currentUser?.role || '').toLowerCase();
-      router.push(role === 'admin' ? '/admin' : '/user');
-    } else {
-      router.push('/login');
-    }
+    router.push('/user');
     setIsProfileMenuOpen(false);
     setIsMenuOpen(false);
   };
@@ -141,16 +166,16 @@ export default function Header({ user, onLogout }: HeaderProps) {
           >
             <Link href="/" className="flex items-center gap-3 group">
               <div className="relative">
-                <div className="w-10 h-10 bg-gradient-to-br from-accent to-blue-600 rounded-xl flex items-center justify-center shadow-lg group-hover:shadow-xl transition-shadow duration-300">
+                <div className="w-10 h-10 bg-linear-to-br from-accent to-blue-600 rounded-xl flex items-center justify-center shadow-lg group-hover:shadow-xl transition-shadow duration-300">
                   <PointOfSaleIcon sx={{ fontSize: 24, color: 'white' }} />
                 </div>
                 <div className="absolute -top-1 -right-1 w-4 h-4 bg-emerald-500 rounded-full border-2 border-white"></div>
               </div>
               <div className="flex flex-col">
                 <span className="text-xl font-bold text-slate-900 group-hover:text-accent transition-colors">
-                  КассоСервис
+                  Фискальник
                 </span>
-                <span className="text-xs text-slate-500">Профессиональное обслуживание ККТ</span>
+                <span className="text-xs text-slate-500">фискальные накопители и ОФД</span>
               </div>
             </Link>
           </motion.div>
@@ -169,7 +194,7 @@ export default function Header({ user, onLogout }: HeaderProps) {
                 className="relative px-4 py-2 text-slate-700 hover:text-accent transition-colors duration-200 font-medium group"
               >
                 {item.label}
-                <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-gradient-to-r from-accent to-blue-600 group-hover:w-full transition-all duration-300"></span>
+                <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-linear-to-r from-accent to-blue-600 group-hover:w-full transition-all duration-300"></span>
               </Link>
             ))}
           </motion.nav>
@@ -191,7 +216,7 @@ export default function Header({ user, onLogout }: HeaderProps) {
                   className="flex items-center gap-3 bg-slate-50 hover:bg-slate-100 rounded-xl px-4 py-2.5 transition-all duration-200 border border-slate-200"
                 >
                   <div className="relative">
-                    <div className="w-9 h-9 bg-gradient-to-br from-accent to-blue-600 rounded-full flex items-center justify-center text-white text-sm font-bold shadow-md">
+                    <div className="w-9 h-9 bg-linear-to-br from-accent to-blue-600 rounded-full flex items-center justify-center text-white text-sm font-bold shadow-md">
                       {displayInitial}
                     </div>
                     {(storeIsAdmin ||
@@ -202,8 +227,10 @@ export default function Header({ user, onLogout }: HeaderProps) {
                     )}
                   </div>
                   <div className="flex flex-col items-start">
+                    {/* 
                     <span className="text-sm font-semibold text-slate-900">{displayName}</span>
-                    <span className="text-xs text-slate-500 capitalize">{displayName}</span>
+                    <span className="text-xs text-slate-500 capitalize">{currentUser?.role}</span>
+                  */}
                   </div>
                   <svg
                     className={`w-4 h-4 text-slate-500 transition-transform duration-200 ${isProfileMenuOpen ? 'rotate-180' : ''}`}
@@ -241,12 +268,12 @@ export default function Header({ user, onLogout }: HeaderProps) {
                         }}
                         className="absolute right-0 mt-2 w-64 bg-white rounded-xl shadow-2xl border border-slate-200 py-2 z-50 overflow-hidden"
                       >
-                        <div className="px-4 py-3 border-b border-slate-100 bg-gradient-to-r from-slate-50 to-white">
+                        <div className="px-4 py-3 border-b border-slate-100 bg-linear-to-r from-slate-50 to-white">
                           <p className="text-sm font-semibold text-slate-900">
                             {displayName || 'Пользователь'}
                           </p>
                           <p className="text-xs text-slate-500 mt-1">
-                            {currentUser?.email || `@${currentUser?.login}`}
+                            {currentUser?.email || `@${(currentUser as HeaderUser)?.login}`}
                           </p>
                         </div>
 
@@ -313,7 +340,7 @@ export default function Header({ user, onLogout }: HeaderProps) {
             {/* Contact Info */}
             <div className="hidden xl:flex items-center gap-6 ml-4 pl-4 border-l border-slate-200">
               <a href="tel:+78001234567" className="flex items-center gap-2 group">
-                <div className="w-10 h-10 bg-gradient-to-br from-emerald-500 to-green-500 rounded-lg flex items-center justify-center">
+                <div className="w-10 h-10 bg-linear-to-br from-emerald-500 to-green-500 rounded-lg flex items-center justify-center">
                   <PhoneIcon sx={{ fontSize: 20, color: 'white' }} />
                 </div>
                 <div className="flex flex-col">
@@ -409,7 +436,7 @@ export default function Header({ user, onLogout }: HeaderProps) {
               </div>
 
               {/* Contact Info */}
-              <div className="bg-gradient-to-r from-blue-50 to-emerald-50 rounded-2xl p-5 mb-8 border border-slate-200">
+              <div className="bg-linear-to-r from-blue-50 to-emerald-50 rounded-2xl p-5 mb-8 border border-slate-200">
                 <div className="space-y-4">
                   <a
                     href="tel:+78001234567"
@@ -417,7 +444,7 @@ export default function Header({ user, onLogout }: HeaderProps) {
                     onClick={() => setIsMenuOpen(false)}
                   >
                     <div className="flex items-center gap-4">
-                      <div className="w-14 h-14 bg-gradient-to-br from-emerald-500 to-green-500 rounded-xl flex items-center justify-center shadow-md">
+                      <div className="w-14 h-14 bg-linear-to-br from-emerald-500 to-green-500 rounded-xl flex items-center justify-center shadow-md">
                         <PhoneIcon sx={{ fontSize: 28, color: 'white' }} />
                       </div>
                       <div className="flex flex-col items-start">
@@ -433,7 +460,7 @@ export default function Header({ user, onLogout }: HeaderProps) {
                     onClick={() => setIsMenuOpen(false)}
                   >
                     <div className="flex items-center gap-4">
-                      <div className="w-14 h-14 bg-gradient-to-br from-accent to-blue-600 rounded-xl flex items-center justify-center shadow-md">
+                      <div className="w-14 h-14 bg-linear-to-br from-accent to-blue-600 rounded-xl flex items-center justify-center shadow-md">
                         <EmailIcon sx={{ fontSize: 28, color: 'white' }} />
                       </div>
                       <div className="flex flex-col items-start">
@@ -450,10 +477,10 @@ export default function Header({ user, onLogout }: HeaderProps) {
               {/* Auth Section */}
               {currentUser ? (
                 <div className="space-y-5">
-                  <div className="flex items-center justify-between p-5 bg-gradient-to-r from-slate-50 to-blue-50 rounded-2xl border border-slate-200">
+                  <div className="flex items-center justify-between p-5 bg-linear-to-r from-slate-50 to-blue-50 rounded-2xl border border-slate-200">
                     <div className="flex items-center gap-4">
                       <div className="relative">
-                        <div className="w-14 h-14 bg-gradient-to-br from-accent to-blue-600 rounded-full flex items-center justify-center text-white font-bold text-xl shadow-md">
+                        <div className="w-14 h-14 bg-linear-to-br from-accent to-blue-600 rounded-full flex items-center justify-center text-white font-bold text-xl shadow-md">
                           {displayInitial}
                         </div>
                         {(storeIsAdmin ||
@@ -465,7 +492,10 @@ export default function Header({ user, onLogout }: HeaderProps) {
                       </div>
                       <div className="flex flex-col items-start">
                         <p className="text-xl font-bold text-slate-900">{displayName}</p>
-                        <p className="text-sm text-slate-500 capitalize mt-1">{displayName}</p>
+                        <p className="text-sm text-slate-500 mt-1">
+                          {currentUser?.email || `@${(currentUser as HeaderUser)?.login}`}
+                          {/* {currentUser?.role || 'user'} */}
+                        </p>
                       </div>
                     </div>
                     <div className="text-slate-400">

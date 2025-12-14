@@ -136,12 +136,12 @@ export default function TestLoadingPage() {
                 <WhiteSpinner text="На темном фоне" />
               </div>
             </div>
-            <div className="bg-gradient-to-r from-gray-900 to-gray-800 p-6 rounded-lg">
+            <div className="bg-linear-to-r from-gray-900 to-gray-800 p-6 rounded-lg">
               <div className="text-center">
-                <LoadingSpinner 
-                  size="md" 
-                  text="Custom Style" 
-                  spinnerClassName="border-white border-t-transparent" 
+                <LoadingSpinner
+                  size="md"
+                  text="Custom Style"
+                  spinnerClassName="border-white border-t-transparent"
                   textClassName="text-white"
                 />
               </div>
@@ -303,13 +303,14 @@ export default function TestLoadingPage() {
               <div>
                 <h4 className="font-medium">Обработка платежа</h4>
                 <p className="text-sm text-secondary">
-                  {isLoading ? 
+                  {isLoading ? (
                     <span className="inline-flex items-center">
                       <CompactLoading />
                       <span className="ml-2">Обработка...</span>
-                    </span> 
-                    : 'Готов к оплате'
-                  }
+                    </span>
+                  ) : (
+                    'Готов к оплате'
+                  )}
                 </p>
               </div>
             </div>

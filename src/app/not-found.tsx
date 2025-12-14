@@ -54,11 +54,11 @@ export default function NotFound() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-gray-100 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-linear-to-br from-slate-50 to-gray-100 flex items-center justify-center p-4">
       <div className="max-w-4xl w-full">
         <div className="bg-white rounded-2xl shadow-xl border border-gray-200 overflow-hidden">
           {/* Header */}
-          <div className="bg-gradient-to-r from-blue-600 to-blue-800 px-8 py-6">
+          <div className="bg-linear-to-r from-blue-600 to-blue-800 px-8 py-6">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-3">
                 <div className="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center">
@@ -150,7 +150,7 @@ export default function NotFound() {
               <div
                 className={`transition-all duration-700 delay-700 ${mounted ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'}`}
               >
-                <div className="bg-gradient-to-br from-slate-50 to-gray-100 rounded-xl p-6 border border-gray-200">
+                <div className="bg-linear-to-br from-slate-50 to-gray-100 rounded-xl p-6 border border-gray-200">
                   <h3 className="font-semibold text-gray-900 mb-4 flex items-center">
                     <span className="w-2 h-2 bg-green-500 rounded-full mr-2"></span>
                     Быстрый доступ

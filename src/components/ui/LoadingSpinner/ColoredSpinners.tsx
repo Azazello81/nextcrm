@@ -107,7 +107,7 @@ export function RainbowSpinner(props: React.ComponentProps<typeof LoadingSpinner
   return (
     <LoadingSpinner
       spinnerClassName="border-red-400 border-t-transparent"
-      textClassName="text-transparent bg-gradient-to-r from-red-600 via-yellow-600 to-blue-600 bg-clip-text"
+      textClassName="text-transparent bg-linear-to-r from-red-600 via-yellow-600 to-blue-600 bg-clip-text"
       {...props}
     />
   );

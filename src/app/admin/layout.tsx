@@ -21,6 +21,7 @@ import {
   MenuItem,
   Divider,
   useMediaQuery,
+  Link,
 } from '@mui/material';
 import {
   Dashboard as DashboardIcon,
@@ -32,13 +33,14 @@ import {
 } from '@mui/icons-material';
 
 import theme from '../../lib/theme';
-import { useUserProfile, handleLogout as storeLogout, useAuthStore } from '@/stores/auth-store';
+import { useUserProfile, handleLogout as storeLogout } from '@/stores/auth-store';
+import { useProtectedRoute } from '@/hooks/useAuth';
 
 const drawerWidth = 240;
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
-  const { user: storeUser, isAdmin } = useUserProfile();
-  const isLoading = useAuthStore((s) => s.isLoading);
+  const { user: storeUser, isAdmin, fullName, initials } = useUserProfile();
+  const { loading } = useProtectedRoute('/login');
   const [mobileOpen, setMobileOpen] = useState(false);
   const [desktopOpen, setDesktopOpen] = useState(true);
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
@@ -47,12 +49,12 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const drawerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (!isLoading) {
+    if (!loading) {
       if (!storeUser || !isAdmin) {
-        router.push('/auth/signin');
+        router.push('/login');
       }
     }
-  }, [isLoading, storeUser, isAdmin, router]);
+  }, [loading, storeUser, isAdmin, router]);
 
   const handleDrawerToggle = () => {
     if (isMobile) {
@@ -99,7 +101,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     { text: 'Настройки', icon: <SettingsIcon />, path: '/admin/settings' },
   ];
 
-  if (isLoading) {
+  if (loading) {
     return (
       <ThemeProvider theme={theme}>
         <CssBaseline />
@@ -134,7 +136,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         }}
       >
         <Typography variant="h6" noWrap component="div">
-          NextCRM
+          <Link href="/" style={{ textDecoration: 'none', color: 'inherit' }}>
+            NextCRM
+          </Link>
         </Typography>
         <IconButton onClick={handleDrawerClose} aria-label="close drawer" size="small">
           <ChevronLeftIcon />
@@ -205,7 +209,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             </Typography>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
               <Typography variant="body2" sx={{ display: { xs: 'none', sm: 'block' } }}>
-                {storeUser?.name}
+                {fullName || storeUser?.email}
               </Typography>
               <IconButton
                 size="large"
@@ -216,7 +220,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 color="inherit"
               >
                 <Avatar sx={{ width: 32, height: 32, bgcolor: 'secondary.main' }}>
-                  {storeUser?.name?.charAt(0) || 'A'}
+                  {initials || fullName?.charAt(0) || storeUser?.email?.charAt(0) || 'A'}
                 </Avatar>
               </IconButton>
             </Box>

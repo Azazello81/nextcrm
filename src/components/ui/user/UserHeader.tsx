@@ -38,7 +38,7 @@ export default function UserHeader({ user, onLogout }: UserHeaderProps) {
           {/* Logo and Main Navigation */}
           <div className="flex items-center space-x-8">
             <Link href="/" className="flex items-center space-x-2">
-              <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
+              <div className="w-8 h-8 bg-linear-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
                 <span className="text-white font-bold text-sm">N</span>
               </div>
               <span className="text-xl font-bold text-gray-900">NextCRM</span>
@@ -102,7 +102,7 @@ export default function UserHeader({ user, onLogout }: UserHeaderProps) {
                         : 'Пользователь'}
                   </p>
                 </div>
-                <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold">
+                <div className="w-10 h-10 bg-linear-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold">
                   {user.name?.charAt(0) || user.login.charAt(0).toUpperCase()}
                 </div>
               </button>
