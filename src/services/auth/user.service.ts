@@ -2,6 +2,7 @@
 import { PrismaClient, UserRole } from '@prisma/client';
 import { PasswordService } from '../../lib/auth/password';
 import { validateUserRole, isValidUserRole } from '../../lib/validation/user-roles';
+import { ApiError } from '../../lib/api/ApiError';
 
 const prisma = new PrismaClient({
   log: ['query', 'info', 'warn', 'error'],
@@ -38,17 +39,17 @@ export class UserService {
     });
 
     if (!user) {
-      throw new Error('Пользователь не найден');
+      throw new ApiError('user_not_found', 404);
     }
 
     if (!user.passwordHash) {
-      throw new Error('Некорректный метод аутентификации');
+      throw new ApiError('invalid_auth_method', 400);
     }
 
     // Проверка пароля
     const isValid = await PasswordService.verifyPassword(password, user.passwordHash);
     if (!isValid) {
-      throw new Error('Неверный пароль');
+      throw new ApiError('invalid_password', 401);
     }
 
     // Обновление времени последнего входа
@@ -66,6 +67,10 @@ export class UserService {
 
   // Получение пользователя по ID
   static async getUserById(userId: string) {
+    if (!userId) {
+      throw new ApiError('missing_user_id', 400);
+    }
+
     const user = await prisma.user.findUnique({
       where: { id: userId },
       select: {
@@ -91,7 +96,7 @@ export class UserService {
     });
 
     if (!user) {
-      throw new Error('Пользователь не найден');
+      throw new ApiError('user_not_found', 404);
     }
 
     return user;
@@ -124,7 +129,7 @@ export class UserService {
     });
 
     if (!user) {
-      throw new Error('Пользователь не найден');
+      throw new ApiError('user_not_found', 404);
     }
 
     return user;
@@ -134,7 +139,7 @@ export class UserService {
   static async updateUserRole(userId: string, newRole: string, adminId: string) {
     // Валидируем роль
     if (!isValidUserRole(newRole)) {
-      throw new Error('Некорректная роль пользователя');
+      throw new ApiError('invalid_role', 400);
     }
 
     const validatedRole = validateUserRole(newRole);
@@ -151,12 +156,32 @@ export class UserService {
     });
 
     if (!admin || admin.role !== 'ADMIN') {
-      throw new Error('Недостаточно прав для изменения ролей');
+      throw new ApiError('forbidden', 403);
+    }
+
+    // Если мы пытаемся лишить пользователя роли ADMIN, убедимся, что останется хотя бы один админ
+    const currentUser = await prisma.user.findUnique({ where: { id: userId } });
+    if (!currentUser) {
+      throw new ApiError('user_not_found', 404);
+    }
+
+    if (currentUser.role === 'ADMIN' && validatedRole !== 'ADMIN') {
+      const otherAdmins = await prisma.user.count({
+        where: {
+          role: 'ADMIN',
+          id: { not: userId },
+          isActive: true,
+        },
+      });
+
+      if (otherAdmins === 0) {
+        throw new ApiError('cannot_demote_last_admin', 400);
+      }
     }
 
     const updatedUser = await prisma.user.update({
       where: { id: userId },
-      data: { role: newRole },
+      data: { role: validatedRole },
     });
 
     console.log(
@@ -209,6 +234,63 @@ export class UserService {
     });
 
     return users;
+  }
+
+  // Создание пользователя администратором
+  static async createUser(data: {
+    email: string;
+    password?: string;
+    firstName?: string;
+    lastName?: string;
+    middleName?: string;
+    phone?: string;
+    role?: string;
+    isActive?: boolean;
+  }) {
+    const { email, password, firstName, lastName, middleName, phone, role, isActive } = data;
+
+    // Проверяем, что email уникален
+    const existing = await prisma.user.findUnique({ where: { email } });
+    if (existing) {
+      throw new ApiError('user_exists', 409);
+    }
+
+    // Валидируем роль (если передана)
+    if (role && !isValidUserRole(role)) {
+      throw new ApiError('invalid_role', 400);
+    }
+
+    const passwordHash = password ? await PasswordService.hashPassword(password) : null;
+
+    const created = await prisma.user.create({
+      data: {
+        email,
+        passwordHash,
+        firstName,
+        lastName,
+        middleName,
+        phone,
+        role: (role as UserRole) || 'USER',
+        registeredAt: new Date(),
+        isActive: isActive ?? true,
+      },
+      select: {
+        id: true,
+        email: true,
+        lastName: true,
+        firstName: true,
+        middleName: true,
+        phone: true,
+        role: true,
+        registeredAt: true,
+        lastLoginAt: true,
+        createdAt: true,
+        isActive: true,
+      },
+    });
+
+    console.log('✅ [UserService] Пользователь создан:', created.email);
+    return created;
   }
 
   // Получение статистики по пользователям
@@ -317,7 +399,7 @@ export class UserService {
       });
 
       if (existingUser) {
-        throw new Error('Пользователь с таким email уже существует');
+        throw new ApiError('user_exists', 409);
       }
     }
 
@@ -331,7 +413,7 @@ export class UserService {
       });
 
       if (existingInn) {
-        throw new Error('Пользователь с таким ИНН уже существует');
+        throw new ApiError('inn_exists', 409);
       }
     }
 
@@ -368,6 +450,13 @@ export class UserService {
 
   // Мягкое удаление пользователя (деактивация)
   static async deactivateUser(userId: string, adminId: string) {
+    if (!userId) {
+      throw new ApiError('invalid_user_id', 400);
+    }
+    if (!adminId) {
+      throw new ApiError('not_admin', 401);
+    }
+
     console.log('🔸 [UserService] Деактивация пользователя:', userId);
 
     // Проверяем права администратора
@@ -376,7 +465,21 @@ export class UserService {
     });
 
     if (!admin || admin.role !== 'ADMIN') {
-      throw new Error('Недостаточно прав для деактивации пользователей');
+      throw new ApiError('forbidden', 403);
+    }
+
+    const targetUser = await prisma.user.findUnique({ where: { id: userId } });
+    if (!targetUser) {
+      throw new ApiError('user_not_found', 404);
+    }
+
+    if (targetUser.role === 'ADMIN') {
+      const otherAdmins = await prisma.user.count({
+        where: { role: 'ADMIN', id: { not: userId }, isActive: true },
+      });
+      if (otherAdmins === 0) {
+        throw new ApiError('cannot_demote_last_admin', 400);
+      }
     }
 
     const deactivatedUser = await prisma.user.update({
@@ -391,6 +494,43 @@ export class UserService {
     return deactivatedUser;
   }
 
+  // Жёсткое удаление пользователя из базы (hard delete)
+  static async hardDeleteUser(userId: string, adminId: string) {
+    if (!userId) {
+      throw new ApiError('invalid_user_id', 400);
+    }
+    if (!adminId) {
+      throw new ApiError('not_admin', 401);
+    }
+
+    console.log('🔸 [UserService] Жёсткое удаление пользователя:', userId);
+
+    // Проверяем права администратора
+    const admin = await prisma.user.findUnique({ where: { id: adminId } });
+    if (!admin || admin.role !== 'ADMIN') {
+      throw new ApiError('forbidden', 403);
+    }
+
+    const targetUser = await prisma.user.findUnique({ where: { id: userId } });
+    if (!targetUser) {
+      throw new ApiError('user_not_found', 404);
+    }
+
+    if (targetUser.role === 'ADMIN') {
+      const otherAdmins = await prisma.user.count({
+        where: { role: 'ADMIN', id: { not: userId }, isActive: true },
+      });
+      if (otherAdmins === 0) {
+        throw new ApiError('cannot_demote_last_admin', 400);
+      }
+    }
+
+    const deleted = await prisma.user.delete({ where: { id: userId } });
+
+    console.log('✅ [UserService] Пользователь удалён навсегда:', deleted.email);
+    return deleted;
+  }
+
   // Активация пользователя
   static async activateUser(userId: string, adminId: string) {
     console.log('🔸 [UserService] Активация пользователя:', userId);
@@ -401,7 +541,7 @@ export class UserService {
     });
 
     if (!admin || admin.role !== 'ADMIN') {
-      throw new Error('Недостаточно прав для активации пользователей');
+      throw new ApiError('forbidden', 403);
     }
 
     const activatedUser = await prisma.user.update({
@@ -463,18 +603,18 @@ export class UserService {
     });
 
     if (!user || !user.passwordHash) {
-      throw new Error('Пользователь не найден или использует другой метод аутентификации');
+      throw new ApiError('user_not_found', 404);
     }
 
     // Проверка текущего пароля
     const isValid = await PasswordService.verifyPassword(currentPassword, user.passwordHash);
     if (!isValid) {
-      throw new Error('Текущий пароль неверен');
+      throw new ApiError('invalid_password', 401);
     }
 
     // Проверка сложности нового пароля
     if (!PasswordService.validatePasswordStrength(newPassword)) {
-      throw new Error('Новый пароль должен содержать минимум 6 символов');
+      throw new ApiError('password_too_short', 400, { min: 6 });
     }
 
     // Хеширование нового пароля
@@ -503,12 +643,12 @@ export class UserService {
     });
 
     if (!admin || admin.role !== 'ADMIN') {
-      throw new Error('Недостаточно прав для сброса пароля');
+      throw new ApiError('forbidden', 403);
     }
 
     // Проверка сложности пароля
     if (!PasswordService.validatePasswordStrength(newPassword)) {
-      throw new Error('Новый пароль должен содержать минимум 6 символов');
+      throw new ApiError('password_too_short', 400, { min: 6 });
     }
 
     // Хеширование нового пароля

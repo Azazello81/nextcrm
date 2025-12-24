@@ -108,11 +108,9 @@ export async function PATCH(request: NextRequest) {
       allowedFields.middleName = data.middleName.trim();
     }
     if (typeof data.phone === 'string') {
-      // Оставляем только цифры и знак + для международного формата
-      const normalized = data.phone.replace(/[^+\d]/g, '');
-      // Простая валидация длины (минимум 10 цифр)
-      const digits = normalized.replace(/\D/g, '');
-      if (digits.length < 10) {
+      const { normalizePhone } = await import('@/lib/validation/phone');
+      const normalized = normalizePhone(data.phone);
+      if (!normalized) {
         return NextResponse.json(
           { success: false, message: 'Некорректный номер телефона' },
           { status: 400 },

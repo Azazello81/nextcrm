@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { RegistrationService } from '../../../../services/auth/registration.service';
 import { JWTService } from '../../../../lib/auth/jwt';
 import { ApiResponse, CleanupResult, SessionStats } from '../../../../types/registration';
+import { withErrorHandling } from '../../../../lib/api/withErrorHandling';
+import { requireAdmin } from '../../../../lib/auth/apiAuth';
+import { getI18nForRequest } from '../../../../lib/i18n';
 
 // Функция для проверки прав администратора
 async function isAdminUser(authHeader: string | null): Promise<boolean> {
@@ -24,89 +27,43 @@ async function isAdminUser(authHeader: string | null): Promise<boolean> {
 }
 
 // POST метод для выполнения очистки
-export async function POST(request: NextRequest) {
-  try {
-    // Проверяем авторизацию
-    const authHeader = request.headers.get('authorization');
-    const isAdmin = await isAdminUser(authHeader);
+export const POST = withErrorHandling(async (request: NextRequest) => {
+  // Проверяем авторизацию через middleware/requireAdmin
+  const adminCheck = requireAdmin(request);
+  if (adminCheck instanceof NextResponse) return adminCheck;
 
-    if (!isAdmin) {
-      const response: ApiResponse = {
-        success: false,
-        message: 'Требуются права администратора',
-      };
-      return NextResponse.json(response, { status: 403 });
-    }
+  // Выполняем очистку
+  const result: CleanupResult = await RegistrationService.cleanupOldSessions();
 
-    // Выполняем очистку
-    const result: CleanupResult = await RegistrationService.cleanupOldSessions();
+  const { t } = getI18nForRequest(request);
 
-    const response: ApiResponse<CleanupResult> = {
-      success: true,
-      message: 'Очистка сессий регистрации завершена',
-      data: result,
-      timestamp: new Date().toISOString(),
-    };
+  const response: ApiResponse<CleanupResult> = {
+    success: true,
+    message: t('cleanup_success'),
+    data: result,
+    timestamp: new Date().toISOString(),
+  };
 
-    return NextResponse.json(response);
-  } catch (error) {
-    console.error('❌ [Cleanup Sessions API] Ошибка:', error);
-
-    let errorMessage = 'Произошла неизвестная ошибка';
-
-    if (error instanceof Error) {
-      errorMessage = error.message;
-    } else if (typeof error === 'string') {
-      errorMessage = error;
-    }
-
-    const response: ApiResponse = {
-      success: false,
-      message: `Ошибка очистки: ${errorMessage}`,
-    };
-
-    return NextResponse.json(response, { status: 500 });
-  }
-}
+  return NextResponse.json(response);
+});
 
 // GET метод для получения статистики
-export async function GET(request: NextRequest) {
-  try {
-    // Проверяем авторизацию
-    const authHeader = request.headers.get('authorization');
-    const isAdmin = await isAdminUser(authHeader);
+export const GET = withErrorHandling(async (request: NextRequest) => {
+  // Проверяем авторизацию через middleware/requireAdmin
+  const adminCheck = requireAdmin(request);
+  if (adminCheck instanceof NextResponse) return adminCheck;
 
-    if (!isAdmin) {
-      const response: ApiResponse = {
-        success: false,
-        message: 'Требуются права администратора',
-      };
-      return NextResponse.json(response, { status: 403 });
-    }
+  const stats: SessionStats = await RegistrationService.getSessionStats();
 
-    const stats: SessionStats = await RegistrationService.getSessionStats();
+  const response: ApiResponse<SessionStats> = {
+    success: true,
+    message: 'Статистика сессий регистрации',
+    data: stats,
+    timestamp: new Date().toISOString(),
+  };
 
-    const response: ApiResponse<SessionStats> = {
-      success: true,
-      message: 'Статистика сессий регистрации',
-      data: stats,
-      timestamp: new Date().toISOString(),
-    };
-
-    return NextResponse.json(response);
-  } catch (error) {
-    console.error('❌ [Cleanup Stats API] Ошибка:', error);
-
-    const errorMessage = error instanceof Error ? error.message : 'Неизвестная ошибка';
-
-    const response: ApiResponse = {
-      success: false,
-      message: `Ошибка получения статистики: ${errorMessage}`,
-    };
-
-    return NextResponse.json(response, { status: 500 });
-  }
-}
+  return NextResponse.json(response);
+});
 
 // OPTIONS метод для CORS
 export async function OPTIONS() {

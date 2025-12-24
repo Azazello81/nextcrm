@@ -26,6 +26,8 @@ import {
   SupportAgent,
   AssignmentTurnedIn,
 } from '@mui/icons-material';
+import { isValidPhone, normalizePhone } from '@/lib/validation/phone';
+import { NativePhoneInput } from '@components/ui/PhoneInput';
 import { FullScreenLoading } from '@/components/ui/LoadingSpinner';
 
 // Note: Remove mock user; Home page relies on store for auth state
@@ -146,8 +148,18 @@ export default function HomePage() {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
+  const handlePhoneChange = (normalized: string | null) => {
+    setFormData((prev) => ({ ...prev, phone: normalized || '' }));
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    // Валидация телефона
+    if (!isValidPhone(formData.phone)) {
+      alert('Пожалуйста, укажите корректный телефон в формате +7XXXXXXXXXX');
+      return;
+    }
+
     console.log('Form submitted:', formData);
     alert('Заявка отправлена! Мы свяжемся с вами в ближайшее время.');
     setFormData({ name: '', phone: '', service: 'Обслуживание ККТ' });
@@ -267,11 +279,10 @@ export default function HomePage() {
                       <label className="block text-sm font-medium text-slate-700 mb-2">
                         Телефон
                       </label>
-                      <input
-                        type="tel"
+                      <NativePhoneInput
                         name="phone"
                         value={formData.phone}
-                        onChange={handleFormChange}
+                        onChange={handlePhoneChange}
                         className="input-field"
                         placeholder="+7 (999) 999-99-99"
                         required

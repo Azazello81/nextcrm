@@ -11,6 +11,12 @@ import { UserRole } from '@prisma/client';
 import { useAuthStore, updateUserProfile } from '@/stores/auth-store';
 import type { AuthUser } from '@/stores/auth-store';
 import { useToast } from '@components/ui/Toast';
+import {
+  isValidPhone,
+  normalizePhone,
+  formatPhone as formatPhoneUtil,
+} from '@/lib/validation/phone';
+import { NativePhoneInput } from '@components/ui/PhoneInput';
 
 // Компонент карточки
 const InfoCard = ({
@@ -263,38 +269,21 @@ export default function UserPage() {
     setCompanyInput(user?.companyName || '');
     setCompanyError(null);
     setCompanyLoading(false);
-    setPhoneInput(user?.phone ? formatPhone(user.phone) : '');
+    setPhoneInput(user?.phone || '');
     setPhoneError(null);
     setPhoneLoading(false);
   }, [user?.lastName, user?.firstName, user?.middleName, user?.companyName, user?.phone]);
 
-  function normalizePhoneDigits(value: string) {
-    return value.replace(/\D/g, '');
-  }
+  // Используем централизованные утилиты для телефонов
+
   function formatPhone(value: string) {
-    const digits = normalizePhoneDigits(value);
-    if (!digits) return '';
-    if (digits.startsWith('7') || digits.startsWith('8')) {
-      const normalized = digits.replace(/^8/, '7');
-      const part1 = normalized.slice(0, 1);
-      const part2 = normalized.slice(1, 4);
-      const part3 = normalized.slice(4, 7);
-      const part4 = normalized.slice(7, 9);
-      const part5 = normalized.slice(9, 11);
-      let out = `+${part1}`;
-      if (part2) out += ` (${part2}`;
-      if (part2 && part2.length === 3) out += `)`;
-      if (part3) out += ` ${part3}`;
-      if (part4) out += `-${part4}`;
-      if (part5) out += `-${part5}`;
-      return out;
-    }
-    return `+${digits}`;
+    const formatted = formatPhoneUtil(value);
+    return formatted || '';
   }
 
-  function handlePhoneInputChange(v: string) {
-    const digits = normalizePhoneDigits(v);
-    setPhoneInput(formatPhone(digits));
+  function handlePhoneInputChange(raw: string) {
+    const normalized = normalizePhone(raw);
+    setPhoneInput(normalized || '');
   }
 
   const saveProfileField = async (
@@ -308,23 +297,26 @@ export default function UserPage() {
       setLoading(true);
       setError(null);
       // Client-side validation for phone
+      let valueToSend: string | undefined = value;
       if (field === 'phone') {
-        const digits = normalizePhoneDigits(value);
-        if (digits.length < 10) {
+        const normalized = normalizePhone(value);
+        if (!normalized) {
           const errMsg = 'Неверный формат телефона';
           setError(errMsg);
           toast.showToast(errMsg, 'error');
           setLoading(false);
           return;
         }
+        valueToSend = normalized;
       }
+
       const res = await fetch('/api/auth/me', {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
           ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
         },
-        body: JSON.stringify({ [field]: value }),
+        body: JSON.stringify({ [field]: valueToSend }),
         credentials: 'same-origin',
       });
       const data = await res.json();
@@ -333,6 +325,11 @@ export default function UserPage() {
         setError(msg);
         toast.showToast(msg, 'error');
       } else {
+        // Обновляем профиль и при телефоне форматируем отображение
+        const updatedVal = data.user[field];
+        if (field === 'phone' && updatedVal) {
+          setPhoneInput(formatPhoneUtil(updatedVal) || '');
+        }
         updateUserProfile({ [field]: data.user[field] } as Partial<AuthUser>);
         toast.showToast('Профиль обновлен', 'success');
         setEditing(false);
@@ -1150,10 +1147,9 @@ export default function UserPage() {
                 value={
                   isEditingPhone ? (
                     <div>
-                      <input
-                        type="tel"
+                      <NativePhoneInput
                         value={phoneInput}
-                        onChange={(e) => handlePhoneInputChange(e.target.value)}
+                        onChange={(normalized) => handlePhoneInputChange(normalized || '')}
                         onKeyDown={(e) => {
                           if (e.key === 'Enter' && !phoneLoading) {
                             saveProfileField(

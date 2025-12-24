@@ -25,6 +25,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Проверяем, что payload содержит userId
+    if (!payload?.userId) {
+      return NextResponse.json({ success: false, message: 'missing_user_id' }, { status: 400 });
+    }
+
     // Проверяем, существует ли пользователь
     const user = await UserService.getUserById(payload.userId);
 
@@ -78,4 +83,3 @@ export async function POST(request: NextRequest) {
     );
   }
 }
-

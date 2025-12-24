@@ -56,7 +56,12 @@ export default function Footer() {
       });
 
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        throw new (await import('../../../lib/api/ApiError')).ApiError(
+          'http_error',
+          response.status,
+          { status: response.status },
+          `HTTP error! status: ${response.status}`,
+        );
       }
 
       const data: HealthResponse = await response.json();

@@ -5,8 +5,15 @@ import { useAuthStore } from '@/stores/auth-store';
 
 export default function AuthDebug() {
   const {
-    user, accessToken, isAuthenticated, isLoading,
-    setUser, setTokens, logout, isAdmin, hasRole
+    user,
+    accessToken,
+    isAuthenticated,
+    isLoading,
+    setUser,
+    setTokens,
+    logout,
+    isAdmin,
+    hasRole,
   } = useAuthStore();
 
   useEffect(() => {
@@ -17,7 +24,8 @@ export default function AuthDebug() {
     setUser({
       id: 'debug-1',
       email: 'debug@example.com',
-      role: 'ADMIN'
+      role: 'ADMIN',
+      isActive: true,
     });
     setTokens('debug-access-token');
   };
@@ -25,7 +33,7 @@ export default function AuthDebug() {
   return (
     <div className="p-4 space-y-4 bg-gray-100">
       <h2>Auth Store Debug</h2>
-      
+
       <div>
         <p>isLoading: {String(isLoading)}</p>
         <p>isAuthenticated: {String(isAuthenticated)}</p>

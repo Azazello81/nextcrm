@@ -279,7 +279,13 @@ export const handleLogin = async (email: string, password: string) => {
     });
 
     if (!response.ok) {
-      throw new Error(data.message || `Ошибка входа (${response.status})`);
+      // Normalize server error into ApiError for consistent handling
+      throw new (await import('../lib/api/ApiError')).ApiError(
+        'auth_failed',
+        response.status,
+        { error: data.message || `Ошибка входа (${response.status})` },
+        data.message || `Ошибка входа (${response.status})`,
+      );
     }
 
     if (data.success && data.user && data.token) {
@@ -307,7 +313,12 @@ export const handleLogin = async (email: string, password: string) => {
       };
     } else {
       console.error('❌ Некорректный ответ сервера:', data);
-      throw new Error('Некорректный ответ сервера');
+      throw new (await import('../lib/api/ApiError')).ApiError(
+        'invalid_server_response',
+        500,
+        undefined,
+        'Некорректный ответ сервера',
+      );
     }
   } catch (error) {
     console.error('💥 Ошибка в handleLogin:', error);

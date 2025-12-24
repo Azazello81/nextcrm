@@ -15,33 +15,53 @@ export class JWTService {
 
   static generateAccessToken(payload: JWTPayload): string {
     if (!this.ACCESS_TOKEN_SECRET) {
-      throw new Error('JWT_ACCESS_SECRET is not defined');
+      throw new (require('../api/ApiError').ApiError)(
+        'server_config_missing',
+        500,
+        { var: 'JWT_ACCESS_SECRET' },
+        'JWT_ACCESS_SECRET is not defined',
+      );
     }
     return jwt.sign(payload, this.ACCESS_TOKEN_SECRET, { expiresIn: '15m' });
   }
 
   static verifyAccessToken(token: string): JWTPayload {
     if (!this.ACCESS_TOKEN_SECRET) {
-      throw new Error('JWT_ACCESS_SECRET is not defined');
+      throw new (require('../api/ApiError').ApiError)(
+        'server_config_missing',
+        500,
+        { var: 'JWT_ACCESS_SECRET' },
+        'JWT_ACCESS_SECRET is not defined',
+      );
     }
     return jwt.verify(token, this.ACCESS_TOKEN_SECRET) as JWTPayload;
   }
 
   static generateRefreshToken(payload: JWTPayload): string {
     if (!this.REFRESH_TOKEN_SECRET) {
-      throw new Error('JWT_REFRESH_SECRET is not defined');
+      throw new (require('../api/ApiError').ApiError)(
+        'server_config_missing',
+        500,
+        { var: 'JWT_REFRESH_SECRET' },
+        'JWT_REFRESH_SECRET is not defined',
+      );
     }
     return jwt.sign(payload, this.REFRESH_TOKEN_SECRET, { expiresIn: '7d' });
   }
 
   static verifyRefreshToken(token: string): JWTPayload {
     if (!this.REFRESH_TOKEN_SECRET) {
-      throw new Error('JWT_REFRESH_SECRET is not defined');
+      throw new (require('../api/ApiError').ApiError)(
+        'server_config_missing',
+        500,
+        { var: 'JWT_REFRESH_SECRET' },
+        'JWT_REFRESH_SECRET is not defined',
+      );
     }
     return jwt.verify(token, this.REFRESH_TOKEN_SECRET) as JWTPayload;
   }
 
-   // Новый метод для декодирования токена без проверки подписи
+  // Новый метод для декодирования токена без проверки подписи
   static decodeToken(token: string): JWTPayload | null {
     try {
       return jwt.decode(token) as JWTPayload;

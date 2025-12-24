@@ -2,6 +2,7 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { JWTService } from './lib/auth/jwt';
+import { getI18nForRequest } from './lib/i18n';
 import { UserRole } from '@prisma/client';
 
 // Конфигурация защищенных путей и необходимых ролей
@@ -34,11 +35,12 @@ const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
 
 // Вспомогательные функции
 function isPublicPath(pathname: string): boolean {
-  return publicPaths.some((path) => 
-    pathname === path || 
-    pathname.startsWith(path + '/') ||
-    (path.endsWith('.txt') && pathname === path) ||
-    (path.endsWith('.xml') && pathname === path)
+  return publicPaths.some(
+    (path) =>
+      pathname === path ||
+      pathname.startsWith(path + '/') ||
+      (path.endsWith('.txt') && pathname === path) ||
+      (path.endsWith('.xml') && pathname === path),
   );
 }
 
@@ -92,7 +94,8 @@ function checkRateLimit(ip: string, path: string): boolean {
   const windowMs = 60 * 1000; // 1 минута
 
   // Периодическая очистка устаревших записей
-  if (Math.random() < 0.01) { // 1% chance to cleanup
+  if (Math.random() < 0.01) {
+    // 1% chance to cleanup
     for (const [key, value] of rateLimitMap.entries()) {
       if (now > value.resetAt) {
         rateLimitMap.delete(key);
@@ -117,6 +120,7 @@ function checkRateLimit(ip: string, path: string): boolean {
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const ip = getClientIP(request);
+  const { t } = getI18nForRequest(request);
 
   // Логирование в development
   if (process.env.NODE_ENV === 'development') {
@@ -143,10 +147,7 @@ export function proxy(request: NextRequest) {
   if (pathname.startsWith('/api/')) {
     if (!checkRateLimit(ip, pathname)) {
       console.log(`🚫 Rate limit exceeded: ${ip} - ${pathname}`);
-      return NextResponse.json(
-        { success: false, message: 'Слишком много запросов. Попробуйте позже.' },
-        { status: 429 },
-      );
+      return NextResponse.json({ success: false, message: t('rate_limit') }, { status: 429 });
     }
   }
 
@@ -175,10 +176,7 @@ export function proxy(request: NextRequest) {
 
     // Для API возвращаем 401, для страниц - редирект
     if (pathname.startsWith('/api/')) {
-      return NextResponse.json(
-        { success: false, message: 'Требуется аутентификация' },
-        { status: 401 },
-      );
+      return NextResponse.json({ success: false, message: t('requires_auth') }, { status: 401 });
     }
 
     const loginUrl = new URL('/login', request.url);
@@ -196,10 +194,7 @@ export function proxy(request: NextRequest) {
       console.log(`🚫 Недостаточно прав: ${payload.role} → ${pathname}`);
 
       if (pathname.startsWith('/api/')) {
-        return NextResponse.json(
-          { success: false, message: 'Недостаточно прав доступа' },
-          { status: 403 },
-        );
+        return NextResponse.json({ success: false, message: t('forbidden') }, { status: 403 });
       }
 
       return NextResponse.redirect(new URL('/', request.url));
@@ -232,17 +227,16 @@ export function proxy(request: NextRequest) {
     // Общие заголовки безопасности
     response.headers.set('X-Content-Type-Options', 'nosniff');
     response.headers.set('X-Frame-Options', 'DENY');
-    
-    return response;
 
+    return response;
   } catch (error) {
     console.log(`🚫 Невалидный токен для: ${pathname}`, error);
 
     let response: NextResponse;
-    
+
     if (pathname.startsWith('/api/')) {
       response = NextResponse.json(
-        { success: false, message: 'Невалидный или истекший токен' },
+        { success: false, message: t('token_invalid') },
         { status: 401 },
       );
     } else {
@@ -253,7 +247,7 @@ export function proxy(request: NextRequest) {
 
     // Удаляем невалидный токен
     response.cookies.delete('auth_token');
-    
+
     return response;
   }
 }

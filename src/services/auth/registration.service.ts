@@ -2,6 +2,7 @@ import { PrismaClient, UserRole } from '@prisma/client';
 import { PasswordService } from '../../lib/auth/password';
 import { validateUserRole } from '../../lib/validation/user-roles';
 import { EmailService } from '../email.service';
+import { ApiError } from '../../lib/api/ApiError';
 import {
   CleanupResult,
   SessionStats,
@@ -35,7 +36,7 @@ export class RegistrationService {
     });
 
     if (existingUser) {
-      throw new Error('Пользователь с таким email уже существует');
+      throw new ApiError('user_exists', 409);
     }
 
     // Проверка существующей активной сессии
@@ -50,12 +51,12 @@ export class RegistrationService {
 
     // Проверка пароля
     if (!PasswordService.validatePasswordStrength(password)) {
-      throw new Error('Пароль должен содержать минимум 6 символов');
+      throw new ApiError('password_too_short', 400, { min: 6 });
     }
 
     // Валидация роли
     if (!['ADMIN', 'MANAGER', 'USER'].includes(role)) {
-      throw new Error('Некорректная роль пользователя');
+      throw new ApiError('invalid_role', 400);
     }
 
     // Хеширование пароля
@@ -93,7 +94,7 @@ export class RegistrationService {
     console.log('✅ [RegistrationService] Сессия создана, ID:', session.id);
     console.log('📧 Код подтверждения:', verificationCode);
 
-     // Отправляем email с кодом подтверждения
+    // Отправляем email с кодом подтверждения
     try {
       await EmailService.sendVerificationCode(email, verificationCode);
       console.log('✅ [RegistrationService] Email с кодом отправлен на:', email);
@@ -122,7 +123,7 @@ export class RegistrationService {
     });
 
     if (!session) {
-      throw new Error('Сессия регистрации не найдена');
+      throw new ApiError('session_not_found', 404);
     }
 
     // Проверяем, создан ли уже пользователь для этой сессии
@@ -133,17 +134,17 @@ export class RegistrationService {
       });
 
       if (existingUser) {
-        throw new Error('Пользователь уже создан');
+        throw new ApiError('user_already_created', 409);
       }
     }
 
     if (session.isVerified) {
-      throw new Error('Сессия уже подтверждена');
+      throw new ApiError('session_already_verified', 400);
     }
 
     // Проверка срока действия кода
     if (this.isSessionExpired(session.verificationCodeExpires)) {
-      throw new Error('Срок действия кода истек');
+      throw new ApiError('code_expired', 400);
     }
 
     // Проверка кода
@@ -159,10 +160,10 @@ export class RegistrationService {
 
       if (session.attempts + 1 >= 3) {
         await this.markSessionAsBlocked(sessionId);
-        throw new Error('Превышено количество попыток. Сессия заблокирована.');
+        throw new ApiError('session_blocked', 429);
       }
 
-      throw new Error('Неверный код подтверждения');
+      throw new ApiError('invalid_code', 400);
     }
 
     // Создание пользователя
@@ -206,11 +207,11 @@ export class RegistrationService {
     });
 
     if (!session) {
-      throw new Error('Сессия регистрации не найдена');
+      throw new ApiError('session_not_found', 404);
     }
 
     if (session.isVerified) {
-      throw new Error('Сессия уже подтверждена');
+      throw new ApiError('session_already_verified', 400);
     }
 
     // Генерация нового кода
@@ -231,7 +232,7 @@ export class RegistrationService {
     console.log('✅ [RegistrationService] Новый код отправлен для:', email);
     console.log('📧 Новый код:', verificationCode);
 
-        // Отправляем email с новым кодом
+    // Отправляем email с новым кодом
     try {
       await EmailService.sendVerificationCode(email, verificationCode);
       console.log('✅ [RegistrationService] Email с новым кодом отправлен на:', email);
@@ -246,7 +247,7 @@ export class RegistrationService {
     };
   }
 
- // Полная очистка старых сессий
+  // Полная очистка старых сессий
   static async cleanupOldSessions(): Promise<CleanupResult> {
     const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
     const oneWeekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
@@ -312,45 +313,40 @@ export class RegistrationService {
     const oneWeekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
     const now = new Date();
 
-    const [
-      successfulToDelete,
-      expiredToDelete,
-      oldToDelete,
-      orphanedToDelete,
-      totalSessions
-    ] = await Promise.all([
-      // Подтвержденные старше 1 дня
-      prisma.registrationSession.count({
-        where: {
-          isVerified: true,
-          updatedAt: { lt: oneDayAgo },
-        },
-      }),
-      // Истекшие сессии
-      prisma.registrationSession.count({
-        where: {
-          verificationCodeExpires: { lt: now },
-          isVerified: false,
-          userId: null,
-        },
-      }),
-      // Все старше 1 недели
-      prisma.registrationSession.count({
-        where: {
-          createdAt: { lt: oneWeekAgo },
-          userId: null,
-        },
-      }),
-      // Orphaned сессии
-      prisma.registrationSession.count({
-        where: {
-          userId: { not: null },
-          user: null,
-        },
-      }),
-      // Всего сессий
-      prisma.registrationSession.count(),
-    ]);
+    const [successfulToDelete, expiredToDelete, oldToDelete, orphanedToDelete, totalSessions] =
+      await Promise.all([
+        // Подтвержденные старше 1 дня
+        prisma.registrationSession.count({
+          where: {
+            isVerified: true,
+            updatedAt: { lt: oneDayAgo },
+          },
+        }),
+        // Истекшие сессии
+        prisma.registrationSession.count({
+          where: {
+            verificationCodeExpires: { lt: now },
+            isVerified: false,
+            userId: null,
+          },
+        }),
+        // Все старше 1 недели
+        prisma.registrationSession.count({
+          where: {
+            createdAt: { lt: oneWeekAgo },
+            userId: null,
+          },
+        }),
+        // Orphaned сессии
+        prisma.registrationSession.count({
+          where: {
+            userId: { not: null },
+            user: null,
+          },
+        }),
+        // Всего сессий
+        prisma.registrationSession.count(),
+      ]);
 
     return {
       successfulToDelete,
@@ -362,24 +358,21 @@ export class RegistrationService {
     };
   }
 
-
   // Принудительная очистка всех сессий (только для админов в экстренных случаях)
   static async cleanupAllSessions(): Promise<{ deletedCount: number }> {
     try {
       console.log('⚠️ [RegistrationService] ПРИНУДИТЕЛЬНАЯ очистка ВСЕХ сессий...');
-      
+
       const result = await prisma.registrationSession.deleteMany({});
-      
+
       console.log(`⚠️ [RegistrationService] Удалено ВСЕХ сессий: ${result.count}`);
-      
+
       return { deletedCount: result.count };
     } catch (error) {
       console.error('❌ [RegistrationService] Ошибка принудительной очистки:', error);
       throw error;
     }
   }
-
-
 
   // Получение информации о сессии
   static async getSession(sessionId: string): Promise<RegistrationSessionData | null> {
@@ -442,7 +435,7 @@ export class RegistrationService {
     });
 
     if (!session) {
-      throw new Error('Сессия не найдена');
+      throw new ApiError('session_not_found', 404);
     }
 
     let user = null;

@@ -25,6 +25,8 @@ import {
   ArrowBack as ArrowBackIcon,
   Add as AddIcon,
 } from '@mui/icons-material';
+import { isValidPhone, normalizePhone } from '@/lib/validation/phone';
+import PhoneInput from '@components/ui/PhoneInput';
 
 // Тип для градиентов
 type GradientColor = 'primary' | 'secondary' | 'success' | 'info' | 'warning' | 'error';
@@ -50,7 +52,6 @@ export default function NewUserPage() {
     role: 'user',
     comment: '',
   });
-  
   const router = useRouter();
 
   // Функция для получения градиента
@@ -61,13 +62,22 @@ export default function NewUserPage() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    // Проверка телефона
+    if (formData.phone && !isValidPhone(formData.phone)) {
+      alert('Некорректный номер телефона');
+      return;
+    }
+
     // В реальном приложении здесь будет запрос к API
-    console.log('Создание пользователя:', formData);
+    console.log('Создание пользователя:', {
+      ...formData,
+      phone: formData.phone ? normalizePhone(formData.phone) : undefined,
+    });
     router.push('/admin/users');
   };
 
-  const handleChange = (field: keyof FormData) => 
-    (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  const handleChange =
+    (field: keyof FormData) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
       setFormData((prev) => ({
         ...prev,
         [field]: e.target.value,
@@ -77,7 +87,7 @@ export default function NewUserPage() {
   const getInitials = (name: string): string => {
     return name
       .split(' ')
-      .map(word => word.charAt(0))
+      .map((word) => word.charAt(0))
       .join('')
       .toUpperCase()
       .slice(0, 2);
@@ -109,25 +119,25 @@ export default function NewUserPage() {
     <Box sx={{ p: 3 }}>
       {/* Заголовок с градиентом */}
       <Box sx={{ mb: 6, textAlign: 'center' }}>
-        <Typography 
-          variant="h1" 
+        <Typography
+          variant="h1"
           gutterBottom
-          sx={{ 
-            display: 'flex', 
-            alignItems: 'center', 
+          sx={{
+            display: 'flex',
+            alignItems: 'center',
             justifyContent: 'center',
             gap: 2,
-            mb: 2
+            mb: 2,
           }}
         >
           <AddIcon sx={{ fontSize: '3rem' }} />
           Создание пользователя
         </Typography>
-        <Typography 
-          variant="h6" 
+        <Typography
+          variant="h6"
           color="text.secondary"
-          sx={{ 
-            maxWidth: '600px', 
+          sx={{
+            maxWidth: '600px',
             mx: 'auto',
             background: 'linear-gradient(135deg, #64748b 0%, #475569 100%)',
             backgroundClip: 'text',
@@ -190,11 +200,14 @@ export default function NewUserPage() {
                   <Grid container spacing={4}>
                     {/* Основная информация */}
                     <Grid size={{ xs: 12, md: 6 }}>
-                      <Typography variant="h6" sx={{ mb: 3, display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <Typography
+                        variant="h6"
+                        sx={{ mb: 3, display: 'flex', alignItems: 'center', gap: 1 }}
+                      >
                         <PersonIcon color="primary" />
                         Основная информация
                       </Typography>
-                      
+
                       <TextField
                         fullWidth
                         required
@@ -280,7 +293,10 @@ export default function NewUserPage() {
 
                     {/* Контактная информация */}
                     <Grid size={{ xs: 12, md: 6 }}>
-                      <Typography variant="h6" sx={{ mb: 3, display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <Typography
+                        variant="h6"
+                        sx={{ mb: 3, display: 'flex', alignItems: 'center', gap: 1 }}
+                      >
                         <EmailIcon color="primary" />
                         Контактная информация
                       </Typography>
@@ -302,12 +318,15 @@ export default function NewUserPage() {
                         }}
                       />
 
-                      <TextField
+                      <PhoneInput
                         fullWidth
-                        type="tel"
                         label="Телефон"
                         value={formData.phone}
-                        onChange={handleChange('phone')}
+                        onChange={(normalized) =>
+                          handleChange('phone')({
+                            target: { value: normalized || '' },
+                          } as React.ChangeEvent<HTMLInputElement>)
+                        }
                         placeholder="Введите телефон"
                         sx={{ mb: 3 }}
                         InputProps={{
@@ -329,7 +348,10 @@ export default function NewUserPage() {
                         placeholder="Введите комментарий"
                         InputProps={{
                           startAdornment: (
-                            <InputAdornment position="start" sx={{ alignSelf: 'flex-start', mt: 1 }}>
+                            <InputAdornment
+                              position="start"
+                              sx={{ alignSelf: 'flex-start', mt: 1 }}
+                            >
                               <CommentIcon color="primary" />
                             </InputAdornment>
                           ),
@@ -339,7 +361,17 @@ export default function NewUserPage() {
                   </Grid>
 
                   {/* Кнопки действий */}
-                  <Box sx={{ display: 'flex', gap: 2, justifyContent: 'flex-end', mt: 6, pt: 3, borderTop: 1, borderColor: 'divider' }}>
+                  <Box
+                    sx={{
+                      display: 'flex',
+                      gap: 2,
+                      justifyContent: 'flex-end',
+                      mt: 6,
+                      pt: 3,
+                      borderTop: 1,
+                      borderColor: 'divider',
+                    }}
+                  >
                     <Button
                       type="button"
                       onClick={() => router.back()}
@@ -365,7 +397,7 @@ export default function NewUserPage() {
                         '&.Mui-disabled': {
                           background: 'rgba(100, 116, 139, 0.1)',
                           color: 'rgba(100, 116, 139, 0.5)',
-                        }
+                        },
                       }}
                     >
                       Создать пользователя
@@ -381,7 +413,11 @@ export default function NewUserPage() {
         <Grid size={{ xs: 12, lg: 4 }}>
           <Card>
             <CardContent sx={{ p: 3 }}>
-              <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <Typography
+                variant="h6"
+                gutterBottom
+                sx={{ display: 'flex', alignItems: 'center', gap: 1 }}
+              >
                 💡 Подсказки
               </Typography>
               <Box sx={{ space: 2 }}>
@@ -401,8 +437,7 @@ export default function NewUserPage() {
                     • Администратор - полный доступ
                     <br />
                     • Менеджер - ограниченные права
-                    <br />
-                    • Пользователь - базовые возможности
+                    <br />• Пользователь - базовые возможности
                   </Typography>
                 </Paper>
                 <Paper variant="outlined" sx={{ p: 2, borderRadius: 2 }}>
@@ -410,7 +445,8 @@ export default function NewUserPage() {
                     AI-рекомендация
                   </Typography>
                   <Typography variant="body2" color="text.secondary">
-                    Система автоматически сгенерирует надежный пароль и отправит его на email пользователя
+                    Система автоматически сгенерирует надежный пароль и отправит его на email
+                    пользователя
                   </Typography>
                 </Paper>
               </Box>

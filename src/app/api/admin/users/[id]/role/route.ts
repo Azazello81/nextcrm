@@ -2,37 +2,36 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { UserService } from '../../../../../../services/auth/user.service';
 import { ApiResponse } from '../../../../../../types/registration';
+import { requireAdmin } from '../../../../../../lib/auth/apiAuth';
 import { isValidUserRole } from '../../../../../../lib/validation/user-roles';
+import { withErrorHandling } from '../../../../../../lib/api/withErrorHandling';
+import { ApiError } from '../../../../../../lib/api/ApiError';
+import { getI18nForRequest } from '../../../../../../lib/i18n';
 
 interface UpdateRoleRequest {
   role: string;
 }
 
-export async function PATCH(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
-  try {
+export const PATCH = withErrorHandling(
+  async (request: NextRequest, { params }: { params: { id: string } }) => {
     const { role }: UpdateRoleRequest = await request.json();
     const userId = params.id;
 
+    const { t } = getI18nForRequest(request);
+
     if (!isValidUserRole(role)) {
-      const response: ApiResponse = {
-        success: false,
-        message: 'Некорректная роль пользователя',
-      };
-      return NextResponse.json(response, { status: 400 });
+      throw new ApiError('invalid_role', 400);
     }
 
-    // Получаем adminId из JWT токена (упрощенно)
-    const authHeader = request.headers.get('authorization');
-    const adminId = authHeader ? 'admin-id-from-token' : ''; // Нужно реализовать извлечение из JWT
+    // Получаем adminId из JWT
+    const adminCheck = requireAdmin(request);
+    if (adminCheck instanceof NextResponse) return adminCheck;
 
-    const updatedUser = await UserService.updateUserRole(userId, role, adminId);
+    const updatedUser = await UserService.updateUserRole(userId, role, adminCheck.userId);
 
     const response: ApiResponse = {
       success: true,
-      message: 'Роль пользователя обновлена',
+      message: t('role_updated'),
       data: {
         id: updatedUser.id,
         email: updatedUser.email,
@@ -41,17 +40,5 @@ export async function PATCH(
     };
 
     return NextResponse.json(response);
-
-  } catch (error: unknown) {
-    console.error('❌ [Update Role API] Ошибка:', error);
-    
-    const errorMessage = error instanceof Error ? error.message : 'Произошла неизвестная ошибка';
-    
-    const response: ApiResponse = {
-      success: false,
-      message: errorMessage,
-    };
-
-    return NextResponse.json(response, { status: 400 });
-  }
-}
+  },
+);

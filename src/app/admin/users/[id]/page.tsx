@@ -1,6 +1,5 @@
 'use client';
 
-import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   Box,
@@ -29,26 +28,27 @@ import {
   CalendarToday as CalendarIcon,
   Refresh as RefreshIcon,
 } from '@mui/icons-material';
+import { formatPhone } from '@/lib/validation/phone';
 import { User } from '../../../../types/admin';
 
 // Mock данные для демонстрации
 const mockUser: User = {
   id: '1',
-  login: 'admin',
-  name: 'Администратор Системы',
+  firstName: 'Администратор',
+  lastName: 'Системы',
   email: 'admin@example.com',
-  phone: '+79999999999',
-  datereg: new Date('2024-01-01'),
-  dateactiv: new Date('2024-01-17'),
+  phone: '79999999999',
+  registeredAt: new Date('2024-01-01'),
+  lastLoginAt: new Date('2024-01-17'),
   avatar: '',
-  role: 'admin',
+  role: 'ADMIN',
   comment: 'Системный администратор с полными правами доступа ко всем функциям платформы',
 };
 
 // Тип для градиентов
 type GradientColor = 'primary' | 'secondary' | 'success' | 'info' | 'warning' | 'error';
 
-export default function UserViewPage({ params }: { params: { id: string } }) {
+export default function UserViewPage() {
   const theme = useTheme();
   const router = useRouter();
   const user = mockUser;
@@ -85,7 +85,7 @@ export default function UserViewPage({ params }: { params: { id: string } }) {
     if (!name) return '?';
     return name
       .split(' ')
-      .map(word => word.charAt(0))
+      .map((word) => word.charAt(0))
       .join('')
       .toUpperCase()
       .slice(0, 2);
@@ -120,11 +120,11 @@ export default function UserViewPage({ params }: { params: { id: string } }) {
       {/* Заголовок с градиентом */}
       <Box sx={{ mb: 6 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
-          <Typography 
-            variant="h1" 
-            sx={{ 
-              display: 'flex', 
-              alignItems: 'center', 
+          <Typography
+            variant="h1"
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
               gap: 2,
             }}
           >
@@ -140,10 +140,10 @@ export default function UserViewPage({ params }: { params: { id: string } }) {
             Назад
           </Button>
         </Box>
-        <Typography 
-          variant="h6" 
+        <Typography
+          variant="h6"
           color="text.secondary"
-          sx={{ 
+          sx={{
             maxWidth: '600px',
             background: 'linear-gradient(135deg, #64748b 0%, #475569 100%)',
             backgroundClip: 'text',
@@ -187,11 +187,11 @@ export default function UserViewPage({ params }: { params: { id: string } }) {
                   </Avatar>
                   <Box sx={{ flex: 1 }}>
                     <Typography variant="h3" fontWeight={800} sx={{ mb: 1 }}>
-                      {user.name || 'Без имени'}
+                      {[user.firstName, user.lastName].filter(Boolean).join(' ') || 'Без имени'}
                     </Typography>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
                       <Chip
-                        label={`@${user.login}`}
+                        label={user.email}
                         size="small"
                         sx={{
                           background: 'rgba(255, 255, 255, 0.2)',
@@ -220,7 +220,10 @@ export default function UserViewPage({ params }: { params: { id: string } }) {
                 <Grid container spacing={4}>
                   {/* Контактная информация */}
                   <Grid size={{ xs: 12, md: 6 }}>
-                    <Typography variant="h6" sx={{ mb: 3, display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <Typography
+                      variant="h6"
+                      sx={{ mb: 3, display: 'flex', alignItems: 'center', gap: 1 }}
+                    >
                       <EmailIcon color="primary" />
                       Контактная информация
                     </Typography>
@@ -248,7 +251,7 @@ export default function UserViewPage({ params }: { params: { id: string } }) {
                               Телефон
                             </Typography>
                             <Typography variant="body1" fontWeight={600}>
-                              {user.phone || 'Не указан'}
+                              {formatPhone(user.phone) || 'Не указан'}
                             </Typography>
                           </Box>
                         </Box>
@@ -258,7 +261,10 @@ export default function UserViewPage({ params }: { params: { id: string } }) {
 
                   {/* Системная информация */}
                   <Grid size={{ xs: 12, md: 6 }}>
-                    <Typography variant="h6" sx={{ mb: 3, display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <Typography
+                      variant="h6"
+                      sx={{ mb: 3, display: 'flex', alignItems: 'center', gap: 1 }}
+                    >
                       <SecurityIcon color="primary" />
                       Системная информация
                     </Typography>
@@ -272,7 +278,7 @@ export default function UserViewPage({ params }: { params: { id: string } }) {
                               Дата регистрации
                             </Typography>
                             <Typography variant="body1" fontWeight={600}>
-                              {formatDate(user.datereg)}
+                              {formatDate(user.registeredAt || new Date())}
                             </Typography>
                           </Box>
                         </Box>
@@ -286,7 +292,7 @@ export default function UserViewPage({ params }: { params: { id: string } }) {
                               Последний вход
                             </Typography>
                             <Typography variant="body1" fontWeight={600}>
-                              {formatDate(user.dateactiv)}
+                              {formatDate(user.lastLoginAt || new Date())}
                             </Typography>
                           </Box>
                         </Box>
@@ -297,14 +303,15 @@ export default function UserViewPage({ params }: { params: { id: string } }) {
                   {/* Комментарий */}
                   {user.comment && (
                     <Grid size={{ xs: 12 }}>
-                      <Typography variant="h6" sx={{ mb: 3, display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <Typography
+                        variant="h6"
+                        sx={{ mb: 3, display: 'flex', alignItems: 'center', gap: 1 }}
+                      >
                         <CommentIcon color="primary" />
                         Комментарий
                       </Typography>
                       <Paper variant="outlined" sx={{ p: 3, borderRadius: 3 }}>
-                        <Typography variant="body1">
-                          {user.comment}
-                        </Typography>
+                        <Typography variant="body1">{user.comment}</Typography>
                       </Paper>
                     </Grid>
                   )}
@@ -336,7 +343,7 @@ export default function UserViewPage({ params }: { params: { id: string } }) {
                     '&:hover': {
                       background: getGradientBackground('primary'),
                       transform: 'translateY(-2px)',
-                    }
+                    },
                   }}
                 >
                   Редактировать профиль
@@ -368,11 +375,12 @@ export default function UserViewPage({ params }: { params: { id: string } }) {
 
               {/* Статус системы */}
               <Box sx={{ p: 3 }}>
-                <Alert 
-                  severity="success" 
-                  sx={{ 
+                <Alert
+                  severity="success"
+                  sx={{
                     borderRadius: 2,
-                    background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(5, 150, 105, 0.1) 100%)',
+                    background:
+                      'linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(5, 150, 105, 0.1) 100%)',
                     border: '1px solid rgba(16, 185, 129, 0.2)',
                   }}
                 >
@@ -390,7 +398,11 @@ export default function UserViewPage({ params }: { params: { id: string } }) {
           {/* Дополнительная информация */}
           <Card sx={{ mt: 3 }}>
             <CardContent sx={{ p: 3 }}>
-              <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <Typography
+                variant="h6"
+                gutterBottom
+                sx={{ display: 'flex', alignItems: 'center', gap: 1 }}
+              >
                 📊 Статистика
               </Typography>
               <Box sx={{ space: 2 }}>

@@ -264,6 +264,10 @@ export default function RegisterForm() {
 
   const { setTokens, setUser } = useAuthStore();
 
+  // Процент заполнения прогресс-бара по длине пароля
+  const passwordProgress = Math.min(100, Math.round((password.length / 6) * 100));
+  const isPasswordValid = password.length >= 6;
+
   useEffect(() => {
     document.body.classList.add('login-page');
     return () => document.body.classList.remove('login-page');
@@ -454,6 +458,54 @@ export default function RegisterForm() {
         onFocus={() => setPasswordFocused(true)}
         onBlur={() => setPasswordFocused(false)}
       />
+
+      {/* Подсказка по длине пароля */}
+      {password.length > 0 && (
+        <div className="mt-2">
+          <div className="flex items-center justify-between mb-1">
+            <div
+              id="password-hint"
+              className={`text-xs ${isPasswordValid ? 'text-accent' : 'text-gray-500'}`}
+              aria-live="polite"
+            >
+              {isPasswordValid
+                ? 'Пароль достаточной длины.'
+                : `Пароль должен содержать не менее 6 символов (${password.length}/6)`}
+            </div>
+            <div className="flex items-center ml-2">
+              {isPasswordValid ? (
+                <svg className="w-4 h-4 text-green-500" viewBox="0 0 20 20" fill="currentColor">
+                  <path
+                    fillRule="evenodd"
+                    d="M16.707 5.293a1 1 0 00-1.414 0L8 12.586 4.707 9.293a1 1 0 00-1.414 1.414l4 4a1 1 0 001.414 0l8-8a1 1 0 000-1.414z"
+                    clipRule="evenodd"
+                  />
+                </svg>
+              ) : (
+                <svg className="w-4 h-4 text-accent" viewBox="0 0 20 20" fill="currentColor">
+                  <path
+                    fillRule="evenodd"
+                    d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11V5a1 1 0 10-2 0v2a1 1 0 102 0zm0 2a1 1 0 10-2 0v4a1 1 0 102 0v-4z"
+                    clipRule="evenodd"
+                  />
+                </svg>
+              )}
+            </div>
+          </div>
+          <div
+            role="progressbar"
+            aria-valuemin={0}
+            aria-valuemax={100}
+            aria-valuenow={passwordProgress}
+            className="w-full h-2 bg-gray-200 rounded overflow-hidden"
+          >
+            <div
+              className={`${isPasswordValid ? 'bg-accent' : 'bg-gray-400'} h-full transition-width duration-150`}
+              style={{ width: `${passwordProgress}%` }}
+            />
+          </div>
+        </div>
+      )}
 
       <SubmitButton
         loading={loading}
